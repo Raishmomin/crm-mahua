@@ -3,7 +3,7 @@ import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ColourRole } from '@/lib/status';
-import { ROLE_CLASSES } from './status-badge';
+import { ROLE_CLASSES } from './role-classes';
 
 export interface KpiTileProps {
   href: string;
@@ -32,7 +32,15 @@ export function KpiTile({ href, word, value, secondary, role, icon: Icon, classN
       )}
     >
       <Icon className={cn('absolute right-4 top-4 h-7 w-7', classes.icon)} aria-hidden="true" />
-      <div className="pr-9 text-3xl font-bold leading-none tabular-nums">{value}</div>
+      <div
+        className={cn(
+          'whitespace-nowrap pr-9 font-bold leading-none tabular-nums',
+          // A half-width tile is ~136px of text on a 390px phone: long amounts (₹5,11,875) step down so they never overflow.
+          value.length <= 4 ? 'text-3xl' : value.length <= 7 ? 'text-2xl' : 'text-xl'
+        )}
+      >
+        {value}
+      </div>
       <div className="mt-2 text-base font-medium leading-snug">{word}</div>
       {secondary && <div className="mt-1 text-sm opacity-80">{secondary}</div>}
     </Link>

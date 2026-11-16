@@ -213,6 +213,8 @@ export async function checkTenantIsolation(): Promise<{ success: boolean; violat
       FROM pg_proc p
       JOIN pg_namespace n ON n.oid = p.pronamespace
       WHERE n.nspname = 'public' AND p.prosecdef
+        -- Event trigger functions (e.g. Supabase's own rls_auto_enable) cannot be called by anyone.
+        AND p.prorettype <> 'event_trigger'::regtype
       ORDER BY p.proname;
     `);
     for (const { proname, args } of definersRes.rows) {
@@ -252,6 +254,7 @@ export async function checkTenantIsolation(): Promise<{ success: boolean; violat
       SELECT p.oid, p.proname, pg_get_function_identity_arguments(p.oid) AS args, p.prosecdef,
              'search_path=public' = ANY (COALESCE(p.proconfig, '{}'::text[])) AS pins_search_path,
              p.prorettype = 'trigger'::regtype AS is_trigger,
+             p.prorettype = 'event_trigger'::regtype AS is_event_trigger,
              EXISTS (
                SELECT 1 FROM aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) a
                WHERE a.grantee = 0 AND a.privilege_type = 'EXECUTE'
@@ -267,10 +270,11 @@ export async function checkTenantIsolation(): Promise<{ success: boolean; violat
       prosecdef: boolean;
       pins_search_path: boolean;
       is_trigger: boolean;
+      is_event_trigger: boolean;
       public_exec: boolean;
     }[]) {
       const label = `function ${fn.proname}(${fn.args})`;
-      if (fn.prosecdef && !fn.pins_search_path) {
+      if (fn.prosecdef && !fn.pins_search_path && !fn.is_event_trigger) {
         violations.push({
           object: label,
           issue: 'SECURITY DEFINER function without SET search_path = public (search-path hijack risk)',
@@ -344,6 +348,7 @@ export async function checkTenantIsolation(): Promise<{ success: boolean; violat
         AND d.defaclobjtype = 'f';
     `);
     const defaults = defRes.rows as { defaclnamespace: number; acl: string }[];
+    const publicNs = Number((await client.query(`SELECT 'public'::regnamespace::oid AS oid`)).rows[0].oid);
     const globalDefault = defaults.find((d) => Number(d.defaclnamespace) === 0);
     if (!globalDefault || /[{,]=X/.test(globalDefault.acl)) {
       violations.push({
@@ -352,6 +357,10 @@ export async function checkTenantIsolation(): Promise<{ success: boolean; violat
       });
     }
     for (const d of defaults) {
+      // Only the global default and public matter: our functions live in public. Supabase's own
+      // schemas (storage, graphql ...) keep their platform defaults.
+      const ns = Number(d.defaclnamespace);
+      if (ns !== 0 && ns !== publicNs) continue;
       if (/[{,]anon=/.test(d.acl)) {
         violations.push({
           object: 'default privileges (functions)',
