@@ -1,0 +1,3 @@
+onion_crm owner v_home_kpis {"new_inquiries":2,"quotes_waiting":1,"orders_in_production":1,"money_due_inr":"511875.00","money_due_usd":"18900.00","money_due_about_inr":"2104200.00","money_overdue_count":1,"followups_today":5,"papers_pending":1}
+onion_crm SEED STORY OK (2 / 1 / 1 / 511875 + 18900 / 1 late / 5 to do)
+onion_crm ops v_home_kpis {"new_inquiries":2,"quotes_waiting":1,"orders_in_production":1,"money_due_inr":"0.00","money_due_usd":"0.00","money_due_about_inr":"0.00","money_overdue_count":0,"followups_today":4,"papers_pending":1}

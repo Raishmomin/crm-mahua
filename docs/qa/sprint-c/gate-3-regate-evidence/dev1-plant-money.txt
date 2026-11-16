@@ -1,0 +1,6 @@
+owner: payment follow_ups=1, to-do rows=5, money to-do rows=Balance $18,900 due, kpi followups_today=5, tick balance reminder: n/a
+accountant: payment follow_ups=1, to-do rows=5, money to-do rows=Balance $18,900 due, kpi followups_today=5, tick balance reminder: n/a
+sales: payment follow_ups=1, to-do rows=5, money to-do rows=Balance $18,900 due, kpi followups_today=5, tick balance reminder: n/a
+plant: payment follow_ups=0, to-do rows=4, money to-do rows=none, kpi followups_today=4, tick balance reminder: 42501 not_found
+PLANT MONEY CHECK OK
+EXIT=0

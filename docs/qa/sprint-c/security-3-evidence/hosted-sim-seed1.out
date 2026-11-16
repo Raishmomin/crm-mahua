@@ -1,0 +1,16 @@
+Database: postgresql://sc_supa_postgres:****@127.0.0.1:5432/mahua_sc
+Applying 8 migration(s)...
+ok   supabase/migrations/0000_auth_shim.sql (40 ms)
+ok   supabase/migrations/0001_core_system.sql (104 ms)
+ok   supabase/migrations/0002_catalog_and_buyers.sql (99 ms)
+ok   supabase/migrations/0003_security_fixes.sql (82 ms)
+ok   supabase/migrations/0004_inquiries_followups.sql (101 ms)
+ok   supabase/migrations/0005_samples_quotes.sql (111 ms)
+ok   supabase/migrations/0006_orders_dispatch_payments.sql (182 ms)
+ok   supabase/migrations/0007_hardening.sql (24 ms)
+Applying 4 seed file(s)...
+ok   supabase/seed/01_core.sql (347 ms)
+ok   supabase/seed/02_inquiries.sql (35 ms)
+ok   supabase/seed/03_samples_quotes.sql (57 ms)
+ok   supabase/seed/04_orders_money.sql (37 ms)
+Seed completed.

@@ -1,0 +1,161 @@
+### 2026-11-16 17:44:31 IST G3-01 re-check on scratch mahua_qc_r3
+created mahua_qc_r3
+mahua_qc* databases remaining: 1
+### 1. fresh seed (npm run db:seed:sql)
+Database: postgresql://postgres:****@127.0.0.1:5432/mahua_qc_r3
+ok   supabase/seed/00_demo_reset.sql (26 ms)
+ok   supabase/seed/01_core.sql (388 ms)
+ok   supabase/seed/02_inquiries.sql (19 ms)
+ok   supabase/seed/03_samples_quotes.sql (24 ms)
+ok   supabase/seed/04_orders_money.sql (17 ms)
+Seed completed.
+mahua_qc_r3 SEED STORY OK (2 / 1 / 1 / 511875 + 18900 / 1 late / 5 to do)
+mahua_qc_r3 ops v_home_kpis {"new_inquiries":2,"quotes_waiting":1,"orders_in_production":1,"money_due_inr":"0.00","money_due_usd":"0.00","money_due_about_inr":"0.00","money_overdue_count":0,"followups_today":4,"papers_pending":1}
+mahua_qc_r3 counts {"buyers":4,"inquiries":10,"samples":3,"quotations":4,"quotation_items":4,"orders":3,"order_items":3,"dispatches":2,"payments":4,"follow_ups":14,"follow_ups_pending":8,"follow_ups_notes":6,"audit_cost_rows":0,"audit_bank_snapshots":0}
+mahua_qc_r3 entity_code_counters BUY=4 INQ=10 ORD=3 SMP=3
+mahua_qc_r3 doc_counters INV/2627=2 PI/2627=3 QTN/2627=4 REC/2627=4 SDN/2627=2
+mahua_qc_r3 step_dates (days ago) ORD-0001 delivered {"confirmed":46,"delivered":38,"dispatched":40,"in_production":45,"ready":41}
+mahua_qc_r3 step_dates (days ago) ORD-0002 dispatched {"confirmed":27,"dispatched":6,"in_production":22,"ready":9}
+mahua_qc_r3 step_dates (days ago) ORD-0003 in_production {"confirmed":10,"in_production":2}
+mahua_qc_r3 next codes (rolled back) {"inq":"INQ-0011","smp":"SMP-0004","ord":"ORD-0004","buy":"BUY-0005","qtn":"QTN-2627-0005","pi":"PI-2627-0004","inv":"INV-2627-0003","sdn":"SDN-2627-0003","rec":"REC-2627-0005"}
+fingerprint A saved
+### 2. seed again without changes
+Seed completed.
+13c13
+< doc_counters           n=5    eb0f9006fbaf829b77aba16bd75dcdce
+---
+> doc_counters           n=5    304f26f0ace48014129d4e0e7dd1b851
+### 3. committed demo-script rehearsal #1
+COMMITTED demo rehearsal on mahua_qc_r3 {"inq":"INQ-0011","ord":"ORD-0004 / PI-2627-0004","rec":"REC-2627-0005","sample":"SMP-0004","quote":"QTN-2627-0005"}
+mahua_qc_r3 SEED STORY MISMATCH [["orders_in_production",1],["money_due_usd",18900],["followups_today",5]]
+mahua_qc_r3 counts {"buyers":4,"inquiries":11,"samples":4,"quotations":5,"quotation_items":5,"orders":4,"order_items":4,"dispatches":2,"payments":5,"follow_ups":17,"follow_ups_pending":8,"follow_ups_notes":6,"audit_cost_rows":0,"audit_bank_snapshots":0}
+mahua_qc_r3 next codes (rolled back) {"inq":"INQ-0012","smp":"SMP-0005","ord":"ORD-0005","buy":"BUY-0005","qtn":"QTN-2627-0006","pi":"PI-2627-0005","inv":"INV-2627-0003","sdn":"SDN-2627-0003","rec":"REC-2627-0006"}
+### 4. re-seed after rehearsal #1
+ok   supabase/seed/00_demo_reset.sql (30 ms)
+Seed completed.
+mahua_qc_r3 SEED STORY OK (2 / 1 / 1 / 511875 + 18900 / 1 late / 5 to do)
+mahua_qc_r3 ops v_home_kpis {"new_inquiries":2,"quotes_waiting":1,"orders_in_production":1,"money_due_inr":"0.00","money_due_usd":"0.00","money_due_about_inr":"0.00","money_overdue_count":0,"followups_today":4,"papers_pending":1}
+mahua_qc_r3 counts {"buyers":4,"inquiries":10,"samples":3,"quotations":4,"quotation_items":4,"orders":3,"order_items":3,"dispatches":2,"payments":4,"follow_ups":14,"follow_ups_pending":8,"follow_ups_notes":6,"audit_cost_rows":0,"audit_bank_snapshots":0}
+mahua_qc_r3 entity_code_counters BUY=4 INQ=10 ORD=3 SMP=3
+mahua_qc_r3 doc_counters INV/2627=2 PI/2627=3 QTN/2627=4 REC/2627=4 SDN/2627=2
+mahua_qc_r3 step_dates (days ago) ORD-0001 delivered {"confirmed":46,"delivered":38,"dispatched":40,"in_production":45,"ready":41}
+mahua_qc_r3 step_dates (days ago) ORD-0002 dispatched {"confirmed":27,"dispatched":6,"in_production":22,"ready":9}
+mahua_qc_r3 step_dates (days ago) ORD-0003 in_production {"confirmed":10,"in_production":2}
+mahua_qc_r3 next codes (rolled back) {"inq":"INQ-0011","smp":"SMP-0004","ord":"ORD-0004","buy":"BUY-0005","qtn":"QTN-2627-0005","pi":"PI-2627-0004","inv":"INV-2627-0003","sdn":"SDN-2627-0003","rec":"REC-2627-0005"}
+13c13
+< doc_counters           n=5    eb0f9006fbaf829b77aba16bd75dcdce
+---
+> doc_counters           n=5    622762e5ccc7d75b7b678d2f5c05e5d0
+### 5. committed rehearsal #2 (codes must repeat)
+COMMITTED demo rehearsal on mahua_qc_r3 {"inq":"INQ-0011","ord":"ORD-0004 / PI-2627-0004","rec":"REC-2627-0005","sample":"SMP-0004","quote":"QTN-2627-0005"}
+Seed completed.
+mahua_qc_r3 SEED STORY OK (2 / 1 / 1 / 511875 + 18900 / 1 late / 5 to do)
+13c13
+< doc_counters           n=5    eb0f9006fbaf829b77aba16bd75dcdce
+---
+> doc_counters           n=5    82ed36ce7e291de61cfd6b010550ccf3
+### 6. BREAK attempt: nastier rehearsal touching seeded rows + a new buyer
+err  owner adds NEW buyer 23514 new row for relation "buyers" violates check constraint "buyers_buyer_type_check" 
+ok   owner reminder on SEEDED buyer Everest {"id":"c6f94387-5710-4a22-8e97-9f47f616a039"}
+ok   owner accepts SEEDED quote QTN-2627-0003 {"id":"d531ca10-cade-4eb5-8116-2acd485a4f4f"}
+ok   accountant pays on SEEDED ORD-0003 Rs 100000 {"id":"dbc2be0f-ffbc-45c0-8d15-27a46109d19c"}
+ok   ops packs SEEDED ORD-0003 {"fn_order_set_packed":""}
+ok   sales marks SEEDED INQ-0009 lost {"fn_inquiry_set_status":""}
+COMMITTED break rehearsal on mahua_qc_r3 {"buyers":"4","orders":"4","payments":"5","qtn3":"accepted","inq9":"lost","ord3":"ready"}
+mahua_qc_r3 SEED STORY MISMATCH [["new_inquiries",2],["quotes_waiting",1],["orders_in_production",1],["money_due_inr",511875],["money_due_usd",18900]]
+### 7. re-seed after break attempt
+ok   supabase/seed/00_demo_reset.sql (30 ms)
+Seed completed.
+mahua_qc_r3 SEED STORY OK (2 / 1 / 1 / 511875 + 18900 / 1 late / 5 to do)
+mahua_qc_r3 ops v_home_kpis {"new_inquiries":2,"quotes_waiting":1,"orders_in_production":1,"money_due_inr":"0.00","money_due_usd":"0.00","money_due_about_inr":"0.00","money_overdue_count":0,"followups_today":4,"papers_pending":1}
+mahua_qc_r3 counts {"buyers":4,"inquiries":10,"samples":3,"quotations":4,"quotation_items":4,"orders":3,"order_items":3,"dispatches":2,"payments":4,"follow_ups":14,"follow_ups_pending":8,"follow_ups_notes":6,"audit_cost_rows":0,"audit_bank_snapshots":0}
+mahua_qc_r3 entity_code_counters BUY=4 INQ=10 ORD=3 SMP=3
+mahua_qc_r3 doc_counters INV/2627=2 PI/2627=3 QTN/2627=4 REC/2627=4 SDN/2627=2
+mahua_qc_r3 next codes (rolled back) {"inq":"INQ-0011","smp":"SMP-0004","ord":"ORD-0004","buy":"BUY-0005","qtn":"QTN-2627-0005","pi":"PI-2627-0004","inv":"INV-2627-0003","sdn":"SDN-2627-0003","rec":"REC-2627-0005"}
+13c13
+< doc_counters           n=5    eb0f9006fbaf829b77aba16bd75dcdce
+---
+> doc_counters           n=5    bd9ab8a0ebe0dc7602f573db83c0eabd
+### 8. rehearsal #3 after break + re-seed
+COMMITTED demo rehearsal on mahua_qc_r3 {"inq":"INQ-0011","ord":"ORD-0004 / PI-2627-0004","rec":"REC-2627-0005","sample":"SMP-0004","quote":"QTN-2627-0005"}
+### 2026-11-16 17:45:09 IST part 2 (fingerprint fixed to ignore doc_counters.id; break script buyer_type fixed)
+### 9. re-seed after rehearsal #3
+Seed completed.
+mahua_qc_r3 SEED STORY OK (2 / 1 / 1 / 511875 + 18900 / 1 late / 5 to do)
+buyers                 n=4    642cb017eeca8539befe51405eb38221
+buyer_contacts         n=5    94236ac43e70e5e77fd42dceb6f38320
+inquiries              n=10   5797e84d2815483dd54d2d29809aa304
+samples                n=3    e5c2f6640178a33b83553082a7608cd0
+quotations             n=4    8eaea1b7e08f1efe10787113b9ad31cb
+quotation_items        n=4    5ce03e24a36763f5a374a06a5268a9f6
+orders                 n=3    84acb689cd8d7293f9a7743bff47ea13
+order_items            n=3    b0a873d0d88e392bad3f7b576266460a
+dispatches             n=2    faf63046e43c7611d57455e6b70991e9
+payments               n=4    c9ad18178c851fd03abb5f2ad198dda6
+follow_ups             n=14   8aacc3cec1b7a28602d76668d2443f4f
+entity_code_counters   n=4    892f7b91601fcbaabf380d11fa3e790d
+doc_counters           n=5    aa28ab1d9d4d43cc9a203f73776a6c96
+products               n=6    9f1af66f02d772954d453e4a4ab29b99
+price_list_items       n=12   513fde840896dbe7d6c903730db73ccc
+packaging_types        n=3    658498fb113330555631edd52a0dd905
+business_settings      n=1    b45741c6c308705553d84056b29a4e25
+app_settings           n=1    b3e52ec2b03206bf7110e8e49b45f5be
+profiles               n=4    781400176c433075e895511630b5c198
+### 10. seed again
+Seed completed.
+FP A2 == B2 (identical)
+### 11. BREAK attempt (fixed)
+ok   owner adds NEW buyer {"id":"f923b619-ab0e-4079-af3b-5a0a9e934293","buyer_code":"BUY-0005"}
+ok   owner adds contact on NEW buyer {"id":"b6da8aaf-8763-49f9-b95e-af229168f147"}
+err  owner note on NEW buyer 23514 new row for relation "follow_ups" violates check constraint "chk_follow_ups_note_or_reminder" 
+ok   owner reminder on SEEDED buyer Everest {"id":"4d5414fa-f88f-47f6-a29c-7797f9d82419"}
+ok   owner accepts SEEDED quote QTN-2627-0003 {"id":"8e36010f-110b-484a-b532-ac815160e4bf"}
+ok   accountant pays on SEEDED ORD-0003 Rs 100000 {"id":"490c00d8-427a-46ed-a0df-551e9742bbeb"}
+ok   ops packs SEEDED ORD-0003 {"fn_order_set_packed":""}
+ok   sales marks SEEDED INQ-0009 lost {"fn_inquiry_set_status":""}
+ok   sales inquiry for NEW buyer {"id":"96496941-94f8-43c8-b3f2-53f1ca86de9e","code":"INQ-0011"}
+ok   sales quote for NEW buyer {"id":"b9fc02d6-17c6-4220-abd9-814619bd66b3","quote_no":"QTN-2627-0005"}
+ok   quote item {"id":"67980f89-630f-4fc5-bbcd-beb804af1f96"}
+ok   send {"fn_quote_send":""}
+ok   owner accepts NEW quote {"id":"62181694-2ae9-4447-9f7c-deafd3a0b752"}
+ok   accountant pays on NEW-buyer order {"id":"e3814bda-34ff-47b5-9e9c-66422565ece2"}
+COMMITTED break rehearsal on mahua_qc_r3 {"buyers":"5","orders":"5","payments":"6","qtn3":"accepted","inq9":"lost","ord3":"ready"}
+mahua_qc_r3 counts {"buyers":5,"inquiries":11,"samples":3,"quotations":5,"quotation_items":5,"orders":5,"order_items":5,"dispatches":2,"payments":6,"follow_ups":18,"follow_ups_pending":10,"follow_ups_notes":6,"audit_cost_rows":0,"audit_bank_snapshots":0}
+mahua_qc_r3 next codes (rolled back) {"inq":"INQ-0012","smp":"SMP-0004","ord":"ORD-0006","buy":"BUY-0006","qtn":"QTN-2627-0006","pi":"PI-2627-0006","inv":"INV-2627-0003","sdn":"SDN-2627-0003","rec":"REC-2627-0007"}
+### 12. re-seed after break attempt
+ok   supabase/seed/00_demo_reset.sql (33 ms)
+Seed completed.
+mahua_qc_r3 SEED STORY OK (2 / 1 / 1 / 511875 + 18900 / 1 late / 5 to do)
+mahua_qc_r3 counts {"buyers":4,"inquiries":10,"samples":3,"quotations":4,"quotation_items":4,"orders":3,"order_items":3,"dispatches":2,"payments":4,"follow_ups":14,"follow_ups_pending":8,"follow_ups_notes":6,"audit_cost_rows":0,"audit_bank_snapshots":0}
+mahua_qc_r3 entity_code_counters BUY=4 INQ=10 ORD=3 SMP=3
+mahua_qc_r3 doc_counters INV/2627=2 PI/2627=3 QTN/2627=4 REC/2627=4 SDN/2627=2
+mahua_qc_r3 next codes (rolled back) {"inq":"INQ-0011","smp":"SMP-0004","ord":"ORD-0004","buy":"BUY-0005","qtn":"QTN-2627-0005","pi":"PI-2627-0004","inv":"INV-2627-0003","sdn":"SDN-2627-0003","rec":"REC-2627-0005"}
+FP A2 == E2 (identical to reference seed)
+### 13. rehearsal #4 after break + re-seed
+COMMITTED demo rehearsal on mahua_qc_r3 {"inq":"INQ-0011","ord":"ORD-0004 / PI-2627-0004","rec":"REC-2627-0005","sample":"SMP-0004","quote":"QTN-2627-0005"}
+### 14. final re-seed + story
+Seed completed.
+mahua_qc_r3 SEED STORY OK (2 / 1 / 1 / 511875 + 18900 / 1 late / 5 to do)
+FP A2 == F2 (identical)
+### 15. 17:45:24 from-zero seed on a second scratch DB vs reference fingerprint
+created mahua_qc_r3b
+mahua_qc* databases remaining: 2
+Seed completed.
+17,18c17,18
+< business_settings      n=1    b45741c6c308705553d84056b29a4e25
+< app_settings           n=1    b3e52ec2b03206bf7110e8e49b45f5be
+---
+> business_settings      n=1    1deadaed2968b095e7ddc4e122691a9c
+> app_settings           n=1    5d201417c4f15eb06b935d91b3bac4ab
+dropped mahua_qc_r3
+dropped mahua_qc_r3b
+mahua_qc* databases remaining: 0
+### 16. 17:45:39 settings rows: from-zero vs re-seeded (ids dropped)
+created mahua_qc_r3c
+mahua_qc* databases remaining: 1
+Seed completed.
+Seed completed.
+[{"bs":"47456bb0bfd8c889601092254b4a974c","aps":"63e02a4b89f936ac52ce66a55b6a9605","bs_id":"96a79389-8666-4da7-ad71-eccc7913399f"}]
+[{"bs":"47456bb0bfd8c889601092254b4a974c","aps":"63e02a4b89f936ac52ce66a55b6a9605","bs_id":"94da88ef-be5b-4bbe-9842-03b4146409ae"}]
+dropped mahua_qc_r3c
+mahua_qc* databases remaining: 0

@@ -1,0 +1,252 @@
+{
+  "id": "dev2",
+  "summary": "Sprint B Dev-2 (Samples + Quotes) complete. Resumed after interruption: migration 0005, seed 03, types, tests and all screens already existed and passed every check; this run reviewed them against contracts 3.3-3.5 / 4.3 / 6 and screens 9-14, made three small fixes (draft edit no longer loses items when a new item is refused, accept page shows the incoterm word, print adds the Delivery line) and ran the full validation. All commands green.",
+  "files_changed": [
+    "supabase/migrations/0005_samples_quotes.sql",
+    "supabase/seed/03_samples_quotes.sql",
+    "src/types/samples.ts",
+    "src/types/quotes.ts",
+    "src/app/(dashboard)/samples/page.tsx",
+    "src/app/(dashboard)/samples/new/page.tsx",
+    "src/app/(dashboard)/samples/[id]/page.tsx",
+    "src/app/(dashboard)/samples/actions.ts",
+    "src/app/(dashboard)/samples/data.ts",
+    "src/app/(dashboard)/samples/company.ts",
+    "src/app/(dashboard)/samples/labels.ts",
+    "src/app/(dashboard)/samples/error.tsx",
+    "src/app/(dashboard)/samples/loading.tsx",
+    "src/app/(dashboard)/quotes/page.tsx",
+    "src/app/(dashboard)/quotes/new/page.tsx",
+    "src/app/(dashboard)/quotes/[id]/page.tsx",
+    "src/app/(dashboard)/quotes/[id]/edit/page.tsx",
+    "src/app/(dashboard)/quotes/[id]/accept/page.tsx",
+    "src/app/(dashboard)/quotes/actions.ts",
+    "src/app/(dashboard)/quotes/data.ts",
+    "src/app/(dashboard)/quotes/helpers.ts",
+    "src/app/(dashboard)/quotes/labels.ts",
+    "src/app/(dashboard)/quotes/error.tsx",
+    "src/app/(dashboard)/quotes/loading.tsx",
+    "src/app/(print)/quotes/[id]/print/page.tsx",
+    "src/components/samples/sample-list.tsx",
+    "src/components/samples/sample-form.tsx",
+    "src/components/samples/product-short.ts",
+    "src/components/quotes/quote-list.tsx",
+    "src/components/quotes/quote-form.tsx",
+    "src/components/quotes/quote-actions.tsx",
+    "src/components/quotes/quote-accept-form.tsx",
+    "src/components/quotes/quote-followups.tsx",
+    "tests/quotes.test.ts",
+    "docs/qa/sprint-b/dev2-report.json",
+    "tasks/todo.md"
+  ],
+  "commands_run": [
+    {
+      "cmd": "npm run db:seed:sql",
+      "exit_code": 0,
+      "output_tail": "ok 0000..0005 migrations; ok 01_core.sql, 02_inquiries.sql, 03_samples_quotes.sql; Seed completed. (0006 is still Dev-3's .draft, so not applied)"
+    },
+    {
+      "cmd": "psql counts (org MDPL)",
+      "exit_code": 0,
+      "output_tail": "samples 3 (SMP-0001 approved, SMP-0002 sent, SMP-0003 to_send); quotations 4 (QTN-2627-0001 accepted USD 27000, -0002 rejected INR 560000+28000=588000, -0003 sent USD 49500 valid T+1, -0004 draft INR 210000+10500=220500); quotation_items 4 with floor 2050/125/2400/125 and gst 0/5/0/5; doc_counters QTN 2627 = 4; SMP counter 3"
+    },
+    {
+      "cmd": "npm run typecheck",
+      "exit_code": 0,
+      "output_tail": "tsc --noEmit (no errors)"
+    },
+    {
+      "cmd": "npm run lint",
+      "exit_code": 0,
+      "output_tail": "No ESLint warnings or errors"
+    },
+    {
+      "cmd": "npx vitest run tests/quotes.test.ts",
+      "exit_code": 0,
+      "output_tail": "tests/quotes.test.ts (16 tests) - Tests 16 passed (16)"
+    },
+    {
+      "cmd": "npm test",
+      "exit_code": 0,
+      "output_tail": "quotes 16, security-fixes 18, inquiries 15, rls-tenant-isolation 5 - Test Files 4 passed, Tests 54 passed (54)"
+    },
+    {
+      "cmd": "npm run ci:tenant-check",
+      "exit_code": 0,
+      "output_tail": "CI Tenant Check PASSED (org_id, index, ENABLE+FORCE RLS, org policy, security_invoker views, no TRUNCATE, definers allowlisted, generators locked)"
+    },
+    {
+      "cmd": "npx next build",
+      "exit_code": 0,
+      "output_tail": "Compiled successfully; 17 pages; routes /samples, /samples/new, /samples/[id], /quotes, /quotes/new, /quotes/[id], /quotes/[id]/edit, /quotes/[id]/accept, /quotes/[id]/print all dynamic"
+    },
+    {
+      "cmd": "npx next start -p 3112 + curl (unauthenticated)",
+      "exit_code": 0,
+      "output_tail": "/samples, /samples?status=sent, /samples/new, /samples/new?inquiry=..., /quotes, /quotes?status=expired, /quotes/new, /quotes/<id>, /quotes/<id>/accept, /quotes/<id>/edit, /quotes/<id>/print -> 307 /login; /login 200; no 500; server stopped"
+    }
+  ],
+  "all_checks_green": true,
+  "contract_deviations": [
+    "fn_quote_item_guard: when the price list prices the product only in the other unit (seed: INR per kg, USD per MT) the floor is converted x1000 / /1000 into the item's unit, so choosing the other unit never switches the floor guard off (contract text matches on unit only).",
+    "fn_sample_set_status validates p_status (bad_payload, P0001) before the row lookup; approved/rejected keep an existing result_note when p_note is empty (the Send sample form stores its 'note to buyer' in result_note per screens.md 10).",
+    "The quote item guard also refuses an item whose org_id differs from its parent quote (bad_payload).",
+    "Buyer accepted is the /quotes/[id]/accept ConfirmPage route (contracts 6.1) rather than a bottom sheet; it redirects to /orders/<id>?from_quote=<quote id>.",
+    "ActionResult in samples/quotes actions carries an optional `code` (SMP / QTN number) for the 'Saved - SMP-0004' toast; otherwise identical to contracts 6.2."
+  ],
+  "open_issues": [
+    "fn_quote_accept (Dev-3, 0006) is still a .draft; until it lands, 'Looks right' returns msg.error.save ('Could not save. Try again.') via mapDbError and does not crash. The accept flow and the redirect to /orders/<id> are unverified end-to-end until 0006 + /orders exist.",
+    "Web login is not possible locally (no Supabase stack), so the authenticated screens were verified only by typecheck, next build, unauthenticated renders and SQL-level Vitest as impersonated users.",
+    "Send sample with 'Save & mark sent': if the insert succeeds but fn_sample_set_status fails, the sample stays to_send and the user sees an error; a retry would create a second sample. Low risk (the RPC only fails on module loss between the two calls).",
+    "Editing a draft updates the header before the items; if a new item is refused (floor), the header changes stay while the old items are kept (no data loss, but a changed currency would leave old items with the previous gst_rate until the next save)."
+  ],
+  "notes_for_qa": [
+    "Seeded data: /samples shows To send 1 / Sent 1 / Approved 1; /quotes shows Draft 1 (QTN-2627-0004), Sent 1 (QTN-2627-0003, valid till tomorrow), Accepted 1, Rejected 1, Expired 0.",
+    "Floor guard: as sales, a W-FLK-A USD item below 2050/MT or R-FLK-C INR item below 125/kg is blocked in the form (red bar) and by the DB (P0001 below_floor_price, DETAIL = floor); the owner can save and send it.",
+    "Expired is display-only: status sent AND valid_till < today; QTN-2627-0003 becomes Expired the day after tomorrow on a non-reseeded DB. Reject is still allowed on an expired quote; Accept is not offered.",
+    "Print route /quotes/<id>/print is under the (print) group, gated by requireModule('quotes'); export quotes show GST 0% line, SWIFT and the USD bank; INR quotes show Subtotal / GST 5% / Total and the buyer GSTIN.",
+    "Share on WhatsApp uses wa.quote_share (T2); export buyers always get the English text."
+  ],
+  "notes_for_other_devs": [
+    "dev3: /quotes/[id]/accept calls supabase.rpc('fn_quote_accept', { p_quote_id, p_ship_by, p_advance_pct }) and expects the new order id (uuid) back, then router.push('/orders/<id>?from_quote=<quote id>'); your order page may show msg.order_created when from_quote is present.",
+    "dev3: the quotes list reads orders(quotation_id, order_code) for accepted quotes and the quote detail reads the order for 'Open order ORD-xxxx'; both tolerate the table being missing.",
+    "dev3: seed 04 should create the order for QTN-2627-0001 (88888888-8888-4888-8888-888888888801, accepted, decided T-27); seed 03 already sets the quote accepted and inquiry INQ-0002 is won from seed 02.",
+    "dev1: fn_sample_set_status / fn_quote_send update inquiries.status directly inside the definer (sample_sent / quoted) and insert follow_ups with buyer_id set; the 'Send sample' and 'Make quote' links from an inquiry should be /samples/new?inquiry=<id> and /quotes/new?inquiry=<id> (buyer-less inquiries get the msg.buyer_needed card with /buyers/new?from_inquiry=<id>)."
+  ],
+  "fix_round": {
+    "date": "2026-11-16",
+    "summary": "Sprint B fix round for G2-01, G2-02, G2-03, SEC2-01, SEC2-02 and the dev2 part of SEC2-03. Floor guard: an unpriced currency (EUR) or a foreign product is refused for non-owners, a draft's currency change re-runs the guard, fn_quote_send re-derives floor, GST and amount from the current price list, and draft edits are saved by one invoker RPC so the order of steps can no longer leave a stale floor. Buyers / buyer_contacts writes now need the owner, accountant or sales role (Plant reads only). samples, quotations, quotation_items, buyer_contacts and price_list_items may point only at parents in their own org. fn_assign_code / fn_assign_doc_no replace any code a web session supplies. All checks green except typecheck / in-repo next build, which fail only on QA's docs/qa/sprint-b/gate-2-evidence/labelcheck.ts.",
+    "findings": [
+      {
+        "id": "G2-01",
+        "status": "fixed",
+        "how": "0005 fn_quote_item_guard: no active price row for (product, quote currency) -> below_floor_price DETAIL 'no_price' for non-owners. New AFTER UPDATE OF currency trigger trg_quotations_currency_recheck (invoker fn_quotation_currency_recheck) re-runs the guard on the draft's items. fn_quote_send first runs UPDATE quotation_items SET updated_at = now() so the guard re-derives floor / GST / amount for the current currency and price list. quote-form offers only currencies priced for every picked product (pricedCurrencies), shows 'No price in EUR - owner only' on the item and blocks Save for non-owners.",
+        "evidence": "quotes.test.ts 'G2-01a / SEC2-01 A' and 'G2-01b / SEC2-01 B'; seeded probe as sales: EUR quote for Rhine, 12 MT at 12.00 -> ERROR below_floor_price DETAIL no_price"
+      },
+      {
+        "id": "SEC2-01",
+        "status": "fixed",
+        "how": "(A) as G2-01; (B) currency trigger + send re-derive + updateQuoteAction now calls fn_quote_update_draft (SECURITY INVOKER: delete old items, update header, insert new items in one transaction; any refusal rolls everything back); (C) the guard looks up the product with p.org_id = quote org, else bad_payload DETAIL 'product_id' (no floor bypass, no gst_rate leak).",
+        "evidence": "quotes.test.ts 'SEC2-01: fn_quote_update_draft ...' (USD->INR and INR->USD both save; below floor / EUR / no items / foreign product refused and the draft is unchanged; Plant 42501; org B not_found; sent -> invalid_transition) and 'SEC2-01 C / G2-03'"
+      },
+      {
+        "id": "G2-02",
+        "status": "fixed (dev2 part)",
+        "how": "0003 section 8a: buyers and buyer_contacts INSERT / UPDATE / DELETE policies add fn_user_role() = ANY ('{owner,accountant,sales}'). Dev-1 added the matching action gate (canWriteBuyers) in their fix round.",
+        "evidence": "quotes.test.ts 'G2-02 / SEC2-03' (Plant: UPDATE buyers 0 rows, contacts 0 rows, DELETE 0, INSERT 42501; sales UPDATE 1 row); seeded probe as ops@: UPDATE buyers 0, UPDATE buyer_contacts 0, DELETE 0, INSERT -> RLS error; as sales UPDATE 4"
+      },
+      {
+        "id": "SEC2-03",
+        "status": "fixed (dev2 part)",
+        "how": "Same 0003 policy change as G2-02 (owner dev1 did the actions)."
+      },
+      {
+        "id": "G2-03",
+        "status": "fixed (dev2 part)",
+        "how": "0005 write policies (INSERT and UPDATE WITH CHECK): samples buyer_id / product_id / inquiry_id, quotations buyer_id / inquiry_id, quotation_items product_id / packaging_type_id (quotation_id was already org-checked) must exist in fn_current_org(). Also 0003: buyer_contacts.buyer_id and price_list_items.product_id get the same parent check.",
+        "evidence": "quotes.test.ts 'SEC2-01 C / G2-03' (14 cross-org inserts / updates refused with 42501 or bad_payload)"
+      },
+      {
+        "id": "SEC2-02",
+        "status": "fixed (dev2 part)",
+        "how": "0003 fn_assign_code / fn_assign_doc_no compute v_caller as fn_current_org does and assign the generated number when the column is NULL OR the caller is authenticated / anon / authenticator. Seeds and tests as postgres keep explicit codes. Dev-1 locked buyers.buyer_code by column grant (verified: has_column_privilege buyer_code UPDATE = f).",
+        "evidence": "quotes.test.ts 'SEC2-02' (pre-claimed SMP-(n+2) becomes SMP-(n+1), the next two inserts succeed; 'PI-2627-0099' becomes QTN-<fy>-xxxx; supplied buyer_code becomes BUY-xxxx; postgres keeps SMP-0900); security-fixes.test.ts zz_sec_codes case; seeded probe as sales: tried INQ-0012 -> got INQ-0011, next insert INQ-0012, forged PI-2627-0099 -> QTN-2627-0006"
+      }
+    ],
+    "files_changed": [
+      "supabase/migrations/0003_security_fixes.sql",
+      "supabase/migrations/0005_samples_quotes.sql",
+      "src/app/(dashboard)/quotes/actions.ts",
+      "src/app/(dashboard)/quotes/helpers.ts",
+      "src/app/(dashboard)/quotes/labels.ts",
+      "src/components/quotes/quote-form.tsx",
+      "src/components/quotes/quote-actions.tsx",
+      "tests/quotes.test.ts",
+      "tests/security-fixes.test.ts",
+      "docs/qa/sprint-b/dev2-report.json",
+      "tasks/todo.md"
+    ],
+    "commands_run": [
+      {
+        "cmd": "npm run db:seed:sql",
+        "exit_code": 0,
+        "output_tail": "ok 0000..0006 migrations; ok 01_core.sql .. 04_orders_money.sql; Seed completed."
+      },
+      {
+        "cmd": "npx vitest run tests/quotes.test.ts",
+        "exit_code": 0,
+        "output_tail": "tests/quotes.test.ts (23 tests) - Tests 23 passed (23)"
+      },
+      {
+        "cmd": "npx vitest run tests/security-fixes.test.ts",
+        "exit_code": 0,
+        "output_tail": "tests/security-fixes.test.ts (18 tests) - Tests 18 passed (18)"
+      },
+      {
+        "cmd": "npm test",
+        "exit_code": 0,
+        "output_tail": "quotes 23, orders-payments 22, inquiries 23, security-fixes 18, rls-tenant-isolation 5 - Test Files 5 passed (5), Tests 91 passed (91)"
+      },
+      {
+        "cmd": "npm run ci:tenant-check",
+        "exit_code": 0,
+        "output_tail": "CI Tenant Check PASSED (... all SECURITY DEFINER functions are allowlisted; number generators are locked)"
+      },
+      {
+        "cmd": "npm run lint",
+        "exit_code": 0,
+        "output_tail": "No ESLint warnings or errors"
+      },
+      {
+        "cmd": "npm run typecheck",
+        "exit_code": 2,
+        "output_tail": "7 x TS2802 in docs/qa/sprint-b/gate-2-evidence/labelcheck.ts (QA evidence file, not dev2's); 0 errors in any other file"
+      },
+      {
+        "cmd": "npx next build (in repo)",
+        "exit_code": 1,
+        "output_tail": "Compiled successfully; Linting and checking validity of types ... Failed to compile. ./docs/qa/sprint-b/gate-2-evidence/labelcheck.ts:52:44 Type error TS2802"
+      },
+      {
+        "cmd": "npx next build (scratch copy of the repo without docs/, node_modules symlinked)",
+        "exit_code": 0,
+        "output_tail": "Generating static pages (21/21); /quotes, /quotes/new, /quotes/[id], /quotes/[id]/edit, /quotes/[id]/accept, /quotes/[id]/print, /samples, /samples/new, /samples/[id] all dynamic"
+      },
+      {
+        "cmd": "next start -p 3122 (scratch build) + curl unauthenticated",
+        "exit_code": 0,
+        "output_tail": "/quotes, /quotes/new, /quotes/<id>, /quotes/<id>/edit, /quotes/<id>/print, /samples, /samples/new -> 307 /login; /login 200; 0 errors in server log; server stopped"
+      },
+      {
+        "cmd": "psql probes as seeded sales@ / ops@ (one transaction, rolled back)",
+        "exit_code": 0,
+        "output_tail": "EUR item -> below_floor_price DETAIL no_price; pre-claimed INQ-0012 -> INQ-0011 then INQ-0012; PI-2627-0099 -> QTN-2627-0006; ops UPDATE buyers 0 / UPDATE buyer_contacts 0 / DELETE buyers 0 / INSERT buyers RLS error; sales UPDATE buyers 4"
+      }
+    ],
+    "all_checks_green": false,
+    "contract_deviations": [
+      "New function fn_quote_update_draft(p_id, p_buyer_id, p_inquiry_id, p_currency, p_fx_rate, p_incoterm, p_valid_till, p_payment_terms, p_notes, p_items jsonb) RETURNS text (quote_no), not in contracts 4.3. It is SECURITY INVOKER (RLS, column grants and the item guard apply as the caller), so it is not on the definer allowlist. updateQuoteAction uses it instead of header update + item insert/delete.",
+      "New trigger trg_quotations_currency_recheck (AFTER UPDATE OF currency, WHEN changed) -> fn_quotation_currency_recheck() (SECURITY INVOKER), not in contracts 3.4.",
+      "fn_quote_item_guard (contracts 3.5): with no price row the floor stays NULL, but a non-owner web caller gets below_floor_price DETAIL 'no_price' (contract guarded only when the floor is NOT NULL); the product must belong to the quote's org (bad_payload DETAIL 'product_id').",
+      "fn_quote_send (contracts 4.3): re-runs the item guard first, so the floor / GST / amount checked are the current price list's for the current currency (contract compared rate with the stored floor_price_at_time).",
+      "fn_assign_code / fn_assign_doc_no (contracts 2.4 / A5 'fills when NULL'): a code supplied by authenticated / anon / authenticator is replaced by the generated one; only trusted callers keep explicit codes.",
+      "0003 8a (extends amendment A1): buyers / buyer_contacts writes need fn_user_role() IN (owner, accountant, sales); buyer_contacts.buyer_id and price_list_items.product_id must be in the caller's org. Suggest the lead records this as amendment A6 in contracts.md section 11 (not dev2's file)."
+    ],
+    "open_issues": [
+      "npm run typecheck and the in-repo npx next build fail only on docs/qa/sprint-b/gate-2-evidence/labelcheck.ts (7 x TS2802, matchAll / Set iteration without downlevelIteration). tsconfig includes **/*.ts. Not dev2's file: QA should rewrite it with Array.from(...), or the lead should exclude docs/** in tsconfig.json. Built a scratch copy without docs/ to prove the app builds.",
+      "The owner may still save and send a quote in an unpriced currency (owner override, as SEC2-01 specifies). The form no longer offers such a currency, but an owner-made EUR order through the API would still be missing from the Home money tile (dev3's v_home_kpis sums INR + USD only).",
+      "Drafts and sent quotes created before this fix keep their stored floor / GST until they are edited or sent. A re-seed resets the demo data."
+    ],
+    "notes_for_qa": [
+      "Quote form: currency chips are only INR / USD for the seeded catalog (EUR is no longer offered for Rhine, which now defaults to USD). If an item has no price in the chosen currency it shows a red 'No price in <cur> - owner only' line, Save is blocked for sales with 'No price for this product in <cur>. Only the owner can save this.', and the owner sees an amber 'Saving as owner' note.",
+      "Edit a draft and switch USD <-> INR with matching rates: it saves in one go. If a rate is below the new floor, the draft stays exactly as it was (header and items).",
+      "Mark sent re-checks against the current price list. If the floor was raised after the draft was saved, sales now gets the below-floor message on send.",
+      "Plant (ops@) on /buyers: database writes are refused (0 rows / RLS error). Dev-1's actions show access denied."
+    ],
+    "notes_for_other_devs": [
+      "dev1: thank you, your buyers column grant and canWriteBuyers already landed. fn_assign_code now replaces any INQ / BUY code a web session supplies (postgres seeds keep theirs). tests/security-fixes.test.ts now checks has_any_column_privilege on buyers, so your column grant does not break it.",
+      "dev3: fn_quote_send now re-runs fn_quote_item_guard over the items before 'sent', so a quote reaching fn_quote_accept has amount / gst_rate / floor_price_at_time for its current currency. Unpriced currencies (EUR) can now only come from the owner, so v_home_kpis can keep summing INR + USD. If you want EUR covered anyway, use app_settings currency_rates.",
+      "lead / QA: please exclude docs/** from tsconfig.json or fix docs/qa/sprint-b/gate-2-evidence/labelcheck.ts so that typecheck and next build go green again; please also add amendment A6 to contracts.md section 11 (see contract_deviations)."
+    ]
+  }
+}

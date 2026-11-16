@@ -1,0 +1,237 @@
+{
+  "verdict": "pass",
+  "summary": "QA gate 2 PASS (no blocker). Every automated check is green: typecheck, lint, npm test 76/76 in 5 files, ci:tenant-check, and next build with 26 new dynamic routes. The fresh bootstrap of mahua_qb, seeded twice, matches the sample-data acceptance table exactly and the second run is identical (inquiries 10, samples 3, quotations 4 / items 4, orders 3 / items 3, dispatches 2, payments 4, follow_ups 8 pending + 6 notes). Counters continue at INQ-0011 / SMP-0004 / QTN-2627-0005 / ORD-0004 / PI-2627-0004 / INV-2627-0003 / SDN-2627-0003 / REC-2627-0005. I replayed the full demo-script flow by SQL as sales, owner, accountant and Plant in one rolled-back transaction: 96/96 contract checks passed, the Home numbers moved as flows.md says, and every negative path returned its contract code (42501 / P0001). All 37 unauthenticated route probes redirected to /login with no 500. The jargon audit and label keys are clean. Break attempts found 3 high issues in the DB walls: the floor guard can be bypassed through a currency with no price-list row (EUR is offered in the UI for Rhine) or by changing a draft's currency; Plant can write buyers; rows can reference another org's buyers or products. They also found 1 major issue (quick-made export buyer gets country '', so quotes and orders disagree), 5 minor and 3 info. The signed-in UI walkthrough is blocked on hosted Supabase credentials.",
+  "checks_run": [
+    {
+      "check": "npm run typecheck",
+      "result": "pass",
+      "output_tail": "> tsc --noEmit  (no output, exit 0, 13 s)"
+    },
+    {
+      "check": "npm run lint",
+      "result": "pass",
+      "output_tail": "> next lint\n✔ No ESLint warnings or errors"
+    },
+    {
+      "check": "npm test (all 5 files)",
+      "result": "pass",
+      "output_tail": "✓ tests/orders-payments.test.ts (22 tests)\n✓ tests/quotes.test.ts (16 tests)\n✓ tests/security-fixes.test.ts (18 tests)\n✓ tests/inquiries.test.ts (15 tests)\n✓ tests/rls-tenant-isolation.test.ts (5 tests)\nTest Files 5 passed (5)\nTests 76 passed (76)"
+    },
+    {
+      "check": "npm run ci:tenant-check (onion_crm)",
+      "result": "pass",
+      "output_tail": "✅ CI Tenant Check PASSED: every public table has org_id, an index, ENABLE + FORCE RLS and an org policy; every view is security_invoker; web roles hold no TRUNCATE / REFERENCES / TRIGGER; all SECURITY DEFINER functions are allowlisted; number generators are locked."
+    },
+    {
+      "check": "npx next build (new routes)",
+      "result": "pass",
+      "output_tail": "✓ Compiled successfully; ✓ Generating static pages (21/21); build exit 0. New ƒ routes: /buyers, /buyers/[id], /buyers/[id]/edit, /buyers/new, /catalog, /inquiries, /inquiries/[id], /inquiries/[id]/edit, /inquiries/new, /orders, /orders/[id], /orders/[id]/checklist, /orders/[id]/dispatch, /orders/[id]/print, /orders/[id]/print/[doc], /payments, /payments/new, /quotes, /quotes/[id], /quotes/[id]/accept, /quotes/[id]/edit, /quotes/[id]/print, /quotes/new, /samples, /samples/[id], /samples/new"
+    },
+    {
+      "check": "Fresh bootstrap mahua_qb: db:seed x2, counts vs acceptance table, identical on rerun",
+      "result": "pass",
+      "output_tail": "ok 0000..0006, ok 01_core..04_orders_money, Seed completed. (both runs)\n{\"buyers\":4,\"inquiries\":10,\"samples\":3,\"quotations\":4,\"quotation_items\":4,\"orders\":3,\"order_items\":3,\"dispatches\":2,\"payments\":4,\"follow_ups\":14,\"follow_ups_pending\":8,\"follow_ups_notes\":6}\nIDENTICAL after second run"
+    },
+    {
+      "check": "Counters / next codes after seed",
+      "result": "pass",
+      "output_tail": "entity_code_counters BUY=4 INQ=10 ORD=3 SMP=3; doc_counters INV/2627=2 PI/2627=3 QTN/2627=4 REC/2627=4 SDN/2627=2; next (rolled back): INQ-0011 SMP-0004 ORD-0004 BUY-0005 QTN-2627-0005 PI-2627-0004 INV-2627-0003 SDN-2627-0003 REC-2627-0005"
+    },
+    {
+      "check": "Acceptance views as owner (fresh DB)",
+      "result": "pass",
+      "output_tail": "v_home_kpis: new_inquiries 2, quotes_waiting 1, orders_in_production 1, money_due_inr 511875.00, money_due_usd 18900.00, money_due_about_inr 2104200.00, money_overdue_count 1, followups_today 5, papers_pending 1"
+    },
+    {
+      "check": "ci:tenant-check against mahua_qb, then drop",
+      "result": "pass",
+      "output_tail": "CI tenant check against postgresql://postgres:****@127.0.0.1:5432/mahua_qb ... ✅ CI Tenant Check PASSED ...; dropped mahua_qb"
+    },
+    {
+      "check": "Demo-script flow by SQL on onion_crm (sales -> owner -> accountant -> Plant -> owner), rolled back",
+      "result": "pass",
+      "output_tail": "INQ-0011 -> SMP-0004 sent (inquiry sample_sent, follow-up +7) -> QTN-2627-0005 USD 28560 (2100/MT as sales: P0001 below_floor_price [2180.00]; as owner allowed) -> sent (inquiry quoted) -> fn_quote_accept: ORD-0004 / PI-2627-0004, advance 8568, quote accepted, inquiry won -> REC-2627-0005 8568 USD / 721854 INR @84.2500, advance_ok true, due 19992 -> in_production -> packed 480 ready -> container dispatch INV-2627-0003 / SDN-2627-0003, 2 of 8 -> ticks coa(ops) / container_booked / bl_received -> KPIs after: quotes_waiting 1, usd due 38892, followups_today 7, papers_pending 1. ROLLED BACK. 99 pass (96 contract checks + 3 probe setup steps)"
+    },
+    {
+      "check": "Negative paths: wrong role/module 42501, cross-org not_found, backwards status, direct writes, expired/rejected/accepted/draft accept",
+      "result": "pass",
+      "output_tail": "accountant/ops/sales without module on 13 functions -> 42501; role_not_allowed for cancel/reopen/phyto/untick/delivered; 12 cross-org calls -> 42501 not_found, 0 rows visible; INSERT payments/orders/order_items, UPDATE orders/dispatches, DELETE payments -> 42501 permission denied; quote past valid_till -> quote_expired [2026-11-15]; rejected/accepted/draft -> invalid_transition"
+    },
+    {
+      "check": "Break attempts beyond the contract (floor guard, cross-org refs, Plant buyer writes, deletes)",
+      "result": "fail",
+      "output_tail": "FAIL PROBE sales INSERT sample/quotation/inquiry with other-org buyer_id -> SMP-0005 / QTN-2627-0006 / INQ-0012\nFAIL PROBE EUR item at 1/MT: floor_price_at_time null; fn_quote_send ok; fn_quote_accept -> ORD-0005 EUR 12.00\nFAIL PROBE UPDATE draft currency USD -> INR ok; fn_quote_send ok (INR 28560 for 12 MT)\nFAIL PROBE ops UPDATE buyers credit_period_days=90 -> 1 row; ops INSERT buyer -> BUY-0005\nFAIL PROBE sales DELETE 'Balance $18,900 due' follow-up / approved sample -> 1 row each\nROLLED BACK. 99 pass, 12 fail (all 12 are probes)"
+    },
+    {
+      "check": "Unauthenticated curl -L on 37 new routes (dev server :3120)",
+      "result": "pass",
+      "output_tail": "37/37: first=307 -> final=200 http://localhost:3120/login; dev log 200 x44, 307 x78, 404 x4, 0 x 500; server stopped, port 3120 free"
+    },
+    {
+      "check": "Playwright 390x844 en+gu: protected route -> /login, unknown route -> not-found",
+      "result": "pass",
+      "output_tail": "{lang:en,path:/orders,finalUrl:/login,bodyFont:17px,horizontalScroll:false,under48:[English 146x41, ગુજરાતી 146x41]}; {path:/this-page-does-not-exist,status:404,h1:'This page does not exist.'} / gu h1 'આ પાનું નથી.'; screenshots docs/qa/screenshots/gate-2/*.png"
+    },
+    {
+      "check": "Signed-in screen walkthrough as 4 roles on phone",
+      "result": "blocked",
+      "output_tail": "No Supabase stack and no hosted credentials; /auth/v1/token unreachable. Signed-in screens were checked by code reading only."
+    },
+    {
+      "check": "Code conformance vs screens.md 3-23 / components.md",
+      "result": "pass",
+      "output_tail": "Packing card 3 lg buttons + advance guard; dispatch Truck/Container toggle + Plant short form + confirm sheet; checklist 8 keys with role rules; ListCard (<=3 facts) on every list; PhoneActions wherever a phone shows; print pages on PrintLayout; requireModule on all 26 pages. Deviations listed as G2-04..G2-12"
+    },
+    {
+      "check": "Jargon audit + label-key check (tsx script, 94 files)",
+      "result": "pass",
+      "output_tail": "files scanned: 94; literal key uses: 566; missing keys: 1 (false positive: quotes.about_inr_rate passed via local dict, present en+gu); keys without Gujarati: 0; DB code -> label key gaps: 0; jargon hits in user-visible strings: 0"
+    },
+    {
+      "check": "Usability pass (Plant 3 taps, munim 3 taps)",
+      "result": "pass",
+      "output_tail": "Plant Packed: card -> Packed -> Save = 3 taps. Plant Loaded: card -> Loaded -> type number -> Save & make papers -> Looks right = 4 taps + 1 typed number (the 4th tap is the design's confirm sheet). Munim: order -> Money received -> Save = 2 taps; Home -> Money received -> pick order -> Save = 3 taps (see G2-10)"
+    }
+  ],
+  "findings": [
+    {
+      "id": "G2-01",
+      "severity": "high",
+      "owner": "dev2",
+      "co_owners": [],
+      "file_ref": "supabase/migrations/0005_samples_quotes.sql:243-266 (fn_quote_item_guard), :127 (currency in UPDATE grant), :446-456 (fn_quote_send); src/components/quotes/quote-form.tsx:212",
+      "problem": "The floor-price guard can be bypassed. (a) If no price-list row exists for the quote currency, there is no floor at all. The form offers the buyer's preferred_currency as a chip, so seeded Rhine shows '€ EUR'. Sales can then save, send and accept any rate; the probe gave ORD-0005 EUR 12.00 for 12 MT, and EUR money is also missing from the Home tile. (b) If a draft's currency changes after its items are saved (USD -> INR), the old floor_price_at_time stays, and fn_quote_send passes at ₹2.38/kg against a ₹175/kg floor.",
+      "fix": "In fn_quote_item_guard, raise below_floor_price for non-owners when no active price-list row exists for (product, currency). In fn_quote_send, re-derive the floor from the current price list for the current currency. Block or re-validate a currency change on a draft that has items (trigger, or remove currency from the column grant). In the form, offer only currencies that are priced for the product. Add both probes to tests/quotes.test.ts."
+    },
+    {
+      "id": "G2-02",
+      "severity": "high",
+      "owner": "dev2",
+      "co_owners": [
+        "dev1"
+      ],
+      "file_ref": "supabase/migrations/0003_security_fixes.sql:427-428; src/app/(dashboard)/buyers/actions.ts:115,161",
+      "problem": "Plant is meant to be read-only on buyers (flows.md 11, screens.md 0.1), but only the pages enforce this. The buyers / buyer_contacts write policies and createBuyerAction / updateBuyerAction check only the buyers module, which the seeded Plant user holds. As ops@: UPDATE buyers SET credit_period_days=90 -> 1 row; INSERT buyer -> BUY-0005. Credit days drive due dates and the Late pill.",
+      "fix": "Treat it like amendment A1. Dev-2: add AND fn_user_role() IN ('owner','accountant','sales') to the buyers and buyer_contacts INSERT/UPDATE/DELETE policies. Dev-1: add the same role check in both buyer actions. Add a test: ops UPDATE buyers affects 0 rows."
+    },
+    {
+      "id": "G2-03",
+      "severity": "high",
+      "owner": "dev2",
+      "co_owners": [
+        "dev1"
+      ],
+      "file_ref": "supabase/migrations/0004_inquiries_followups.sql:59,130; supabase/migrations/0005_samples_quotes.sql:48,113,169",
+      "problem": "The insert and update policies check only the new row's org_id, and a plain FK accepts a buyer_id / product_id / packaging_type_id from another org. MDPL sales created SMP-0005, QTN-2627-0006 and INQ-0012 pointing at another org's buyer. Org A can pin org B's buyer (B can no longer delete it). A quote item with a foreign product_id has no floor (another bypass). Exploiting this needs a foreign UUID, so the likelihood is low.",
+      "fix": "Add WITH CHECK sub-selects such as (buyer_id IS NULL OR EXISTS (SELECT 1 FROM buyers b WHERE b.id = buyer_id AND b.org_id = fn_current_org())) for buyer_id, product_id, packaging_type_id, inquiry_id and quotation_id, or use composite (org_id, id) FKs. Dev-1: inquiries and follow_ups. Dev-2: samples, quotations, quotation_items. Add one cross-org insert test per file."
+    },
+    {
+      "id": "G2-04",
+      "severity": "major",
+      "owner": "dev1",
+      "co_owners": [
+        "dev3"
+      ],
+      "file_ref": "src/app/(dashboard)/inquiries/actions.ts:94-100,117-135; src/app/(dashboard)/orders/helpers.ts:21",
+      "problem": "The inquiry '+ New buyer' creates a buyer row at once, an undocumented deviation from screens.md 5. For a non-+91 phone the row gets buyer_type export_importer and USD but country ''. quotes/helpers.ts treats '' as export while orders/helpers.ts isExportCountry treats it as India, so the order defaults to Truck, WhatsApp texts in the user's language instead of English, and a TAX INVOICE layout for a USD order. The buyer, contact and inquiry inserts are not atomic: a failure leaves an orphan buyer, and a retry duplicates it. This shows in the demo's 'Add one inquiry yourself' step.",
+      "fix": "Dev-1: store a real country (from the phone's country code, or require the Country chip), and either document the buyer-first deviation or follow screens.md 5. Dev-3: make isExportCountry agree with the quotes rule, preferably by deciding on buyer_type export_*."
+    },
+    {
+      "id": "G2-05",
+      "severity": "minor",
+      "owner": "dev1",
+      "co_owners": [
+        "dev2"
+      ],
+      "file_ref": "supabase/migrations/0004_inquiries_followups.sql:138; supabase/migrations/0005_samples_quotes.sql:56",
+      "problem": "follow_ups_delete and samples_delete check the module only. Sales can DELETE the system reminder 'Balance $18,900 due' and the approved sample SMP-0001 through PostgREST (1 row each). No screen does this.",
+      "fix": "follow_ups: allow DELETE only of plain notes (due_on IS NULL) created by the caller, or revoke DELETE. samples: allow DELETE only WHERE status = 'to_send'."
+    },
+    {
+      "id": "G2-06",
+      "severity": "minor",
+      "owner": "dev3",
+      "co_owners": [],
+      "file_ref": "src/lib/labels.ts:650 (gu 1167); src/app/(dashboard)/orders/helpers.ts dispatchedText",
+      "problem": "wa.dispatched says 'was dispatched today', but the order's Share on WhatsApp shows it on any later day. ORD-0002, dispatched at T-6, would say 'today'. flows.md T5 uses 'dispatched on {date}'.",
+      "fix": "Add {date} to the en and gu templates and pass formatDate(dispatched_on)."
+    },
+    {
+      "id": "G2-07",
+      "severity": "minor",
+      "owner": "dev1",
+      "co_owners": [],
+      "file_ref": "src/components/followups/notes-section.tsx:102",
+      "problem": "'+ Add note' uses size='sm' (h-10 = 42.5 px) in a section header on every detail page. components.md 3 allows sm only inside list rows of at least 64 px.",
+      "fix": "Use the default button size (h-12)."
+    },
+    {
+      "id": "G2-08",
+      "severity": "minor",
+      "owner": "dev3",
+      "co_owners": [],
+      "file_ref": "contracts.md 6.1: src/app/(dashboard)/payments/[id], src/app/(print)/payments/[id]/print (missing)",
+      "problem": "The receipt view and receipt print are not built (/payments/<id> gives 404). Once the success screen is closed, a receipt cannot be reopened, reprinted or re-shared.",
+      "fix": "Build both routes, or record the de-scope in contracts.md and tasks/todo.md."
+    },
+    {
+      "id": "G2-09",
+      "severity": "minor",
+      "owner": "dev3",
+      "co_owners": [],
+      "file_ref": "src/app/(dashboard)/orders/[id]/page.tsx (StatusStepper); src/components/orders/packing-card.tsx:118,128",
+      "problem": "screens.md 16A/16B show a date under each step and on 'Packing started'. The stepper shows only 'since status_changed_at', and a packing-card done line loses its date once the next step is reached.",
+      "fix": "Store per-step timestamps set by the order functions, or read them through a definer view over audit_log."
+    },
+    {
+      "id": "G2-10",
+      "severity": "minor",
+      "owner": "dev3",
+      "co_owners": [],
+      "file_ref": "src/components/payments/payment-form.tsx:63,83",
+      "problem": "Money received prefills the full due. For an order whose advance is still waiting (ORD-0004: due $28,560, advance $8,568), the 2-tap path records the whole order as paid. The over-payment check cannot catch it because the amount equals the due.",
+      "fix": "When advance_ok is false, prefill advance_expected - received and show the full due as a hint."
+    },
+    {
+      "id": "G2-11",
+      "severity": "info",
+      "owner": "dev1",
+      "co_owners": [],
+      "file_ref": "supabase/migrations/0004_inquiries_followups.sql:308-331",
+      "problem": "v_followups_today returns 01, 02, 04, 03, 05 (Rhine before Al-Barakah) by contract ORDER BY due_on, created_at. sample-data.md 7 and demo-script 0:10 list 03 before 04.",
+      "fix": "The designers align sample-data created_at values or the script wording; no code change."
+    },
+    {
+      "id": "G2-12",
+      "severity": "info",
+      "owner": "dev3",
+      "co_owners": [],
+      "file_ref": "src/lib/status.ts:148-156",
+      "problem": "The checklist row order follows labels.md 9 (COA 6th), while screens.md 18 shows COA 3rd. The two design docs disagree.",
+      "fix": "Pick one order in the design docs."
+    },
+    {
+      "id": "G2-13",
+      "severity": "info",
+      "owner": "dev2",
+      "co_owners": [],
+      "file_ref": "src/app/(dashboard)/samples/actions.ts; src/components/samples/sample-form.tsx",
+      "problem": "'Save & mark sent' is an insert followed by an RPC. If the RPC fails, a retry creates a second sample (already Dev-2's open issue).",
+      "fix": "Optionally use one definer call with a p_mark_sent flag in Sprint C."
+    }
+  ],
+  "blocked_waiting_for_credentials": [
+    "Signed-in walkthrough at 390x844 (en + gu) as Owner, Accounts, Sales and Plant on all 22 Sprint B screens, including toasts, the redirect after quote accept, wa.me links and print to PDF",
+    "Rendered-page leak grep for raw codes [a-z]+_[a-z]+ (contracts.md 10) on signed-in pages",
+    "Timed 5-minute demo-script run on a phone"
+  ],
+  "usability_notes": [
+    "Plant Packed: Home -> Packing today card -> 'Packed - how many bags?' (prefilled planned bags) -> Save = 3 taps; buttons 59.5 px, bag count text-3xl.",
+    "Plant Loaded: card -> Loaded -> type the vehicle or container number -> Save & make papers -> Looks right = 4 taps + 1 typed number (the confirm sheet is required by the design); port chip prefilled, date and qty hidden.",
+    "Munim Money received: from the order 2 taps (amount prefilled, Bank preselected); from Home 3 taps (button -> pick order -> Save). Risk: the full-due prefill records advance payments as full payments (G2-10).",
+    "Plant has no link to the dispatch slip after Loaded (the packing card has no Papers block); screens.md 16A and 16B disagree, so the designers should decide.",
+    "The 'Packing started' button is disabled with 'Wait for advance' while the advance is waiting, so the supervisor must phone the office; this is the intended soft guard.",
+    "Still open from Sprint A: the language toggle segments are 41 px (F3) and React warns 'Extra attributes from the server: style' on the login inputs (I3)."
+  ],
+  "report_path": "/home/raish/raish/mahua-crm/docs/qa/gate-2.md"
+}

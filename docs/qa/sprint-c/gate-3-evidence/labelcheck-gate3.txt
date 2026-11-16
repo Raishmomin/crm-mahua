@@ -1,0 +1,60 @@
+Sprint C changed src files (.ts/.tsx newer than the gate-2 re-gate report): 37
+  src/app/(dashboard)/orders/[id]/page.tsx
+  src/app/(dashboard)/orders/data.ts
+  src/app/(dashboard)/orders/helpers.ts
+  src/app/(dashboard)/payments/[id]/page.tsx
+  src/app/(dashboard)/payments/actions.ts
+  src/app/(dashboard)/payments/data.ts
+  src/app/(dashboard)/payments/labels.ts
+  src/app/(dashboard)/payments/new/page.tsx
+  src/app/(dashboard)/quotes/[id]/accept/page.tsx
+  src/app/(dashboard)/quotes/[id]/page.tsx
+  src/app/(dashboard)/quotes/data.ts
+  src/app/(dashboard)/quotes/helpers.ts
+  src/app/(dashboard)/samples/actions.ts
+  src/app/(dashboard)/settings/actions.ts
+  src/app/(dashboard)/settings/limits.ts
+  src/app/(dashboard)/settings/settings-form.tsx
+  src/app/(dashboard)/users/actions.ts
+  src/app/(print)/orders/[id]/print/[doc]/page.tsx
+  src/app/(print)/payments/[id]/print/page.tsx
+  src/app/(print)/quotes/[id]/print/page.tsx
+  src/app/login/actions.ts
+  src/app/login/login-form.tsx
+  src/app/login/page.tsx
+  src/components/followups/notes-section.tsx
+  src/components/orders/packing-card.tsx
+  src/components/payments/payment-form.tsx
+  src/components/quotes/quote-form.tsx
+  src/components/shell/header.tsx
+  src/components/shell/language-toggle.tsx
+  src/components/ui/form-field.tsx
+  src/components/ui/status-stepper.tsx
+  src/lib/labels.ts
+  src/lib/status.ts
+  src/lib/utils.ts
+  src/types/orders.ts
+  src/types/payments.ts
+  src/types/quotes.ts
+
+literal key uses: 415; missing keys: 0
+keys with English but no Gujarati: 0
+placeholder mismatches en vs gu (all dictionaries): 0
+
+Sprint C keys (en | gu):
+  LABELS[wa.dispatched]: "Namaste {buyer}, order {order_code} was dispatched on {date}. Invoice {invoice_no}, {vehicle_or_container}, {qty}. - {company}" | "નમસ્તે {buyer}, ઓર્ડર {order_code} {date} ના રોજ રવાના થયો. ઇન્વોઇસ {invoice_no}, {vehicle_or_container}, {qty}. - {company}"
+  LABELS[msg.error.required]: "Please fill this" | "આ ભરો"
+  LABELS[msg.error.too_long]: "Too long. Make it shorter." | "બહુ લાંબું છે. ટૂંકું કરો."
+  LABELS[btn.view_receipt]: "Receipt" | "રસીદ"
+  LABELS[wa.receipt]: "Namaste {buyer}, received {amount} for order {order_code}. Receipt {receipt_no}. Balance due {due}. Thank you. - {company}" | "નમસ્તે {buyer}, ઓર્ડર {order_code} ના {amount} મળ્યા. રસીદ {receipt_no}. બાકી {due}. આભાર. - {company}"
+  PAYMENT_LABELS[payments.err.future_date]: "The date cannot be after today." | "તારીખ આજ પછીની ન હોઈ શકે."
+  PAYMENT_LABELS[payments.err.over_payment]: "This is much more than the due ({due}). Only the owner can save it." | "આ બાકી ({due}) કરતાં ઘણું વધારે છે. ફક્ત માલિક સેવ કરી શકે."
+  title.* keys: 22; without gu: 0
+  PAYMENT_LABELS[payments.full_due_hint]: "Full due {due}" | "કુલ બાકી {due}"
+  JARGON jsx src/app/(dashboard)/quotes/[id]/page.tsx:58: it.floor_price_at_time !== null && it.rate
+  HARDCODED src/app/(print)/orders/[id]/print/[doc]/page.tsx:380: "Packing list"
+
+jargon hits: 1; hard-coded English text nodes (2+ words): 1
+  SMALL? src/components/followups/notes-section.tsx:140: size="sm"
+  SMALL? src/components/payments/payment-form.tsx:240: <Button variant="outline" size="sm" onClick={() => setPicking(true)}>
+possible tap targets under 44px in changed files: 2

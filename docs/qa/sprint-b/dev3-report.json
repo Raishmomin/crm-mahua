@@ -1,0 +1,201 @@
+{
+  "id": "dev3",
+  "summary": "Sprint B Dev-3 done. Migration 0006 adds orders, order_items, dispatches (truck/container + 8-key export_checklist) and payments (append-only). All four are function-only: SELECT by org, no INSERT/UPDATE/DELETE grant, writes only through 7 SECURITY DEFINER functions (fn_quote_accept, fn_order_set_status, fn_order_set_packed, fn_order_dispatch, fn_dispatch_tick, fn_dispatch_delivered, fn_payment_record). Each one has SET search_path, checks fn_current_org() and fn_require_module, and raises 42501 / P0001 by the contract. 0006 also adds the security_invoker views v_orders_in_production, v_order_balances (Paid/Waiting/Late), v_money_due and v_home_kpis (always one row). Seed 04 loads exactly the sample-data orders, items, 2 dispatches and 4 payments and bumps the ORD/PI/INV/SDN/REC counters. As the demo owner, v_home_kpis shows the acceptance numbers 2 / 1 / 1 / Rs 5,11,875 + $18,900 / about Rs 21,04,200 / 1 late / 5 to do. Screens: Orders list, order detail with the Plant packing card, dispatch form, export checklist, print PI / invoice / slip, Money list, Money received, Products. Home now shows the 'about Rs' line. tests/orders-payments.test.ts has 22 tests. All checks pass.",
+  "files_changed": [
+    "supabase/migrations/0006_orders_dispatch_payments.sql",
+    "supabase/seed/04_orders_money.sql",
+    "tests/orders-payments.test.ts",
+    "src/types/orders.ts",
+    "src/types/payments.ts",
+    "src/app/(dashboard)/page.tsx",
+    "src/app/(dashboard)/orders/page.tsx",
+    "src/app/(dashboard)/orders/actions.ts",
+    "src/app/(dashboard)/orders/data.ts",
+    "src/app/(dashboard)/orders/helpers.ts",
+    "src/app/(dashboard)/orders/labels.ts",
+    "src/app/(dashboard)/orders/error.tsx",
+    "src/app/(dashboard)/orders/loading.tsx",
+    "src/app/(dashboard)/orders/[id]/page.tsx",
+    "src/app/(dashboard)/orders/[id]/dispatch/page.tsx",
+    "src/app/(dashboard)/orders/[id]/checklist/page.tsx",
+    "src/app/(print)/orders/[id]/print/page.tsx",
+    "src/app/(print)/orders/[id]/print/[doc]/page.tsx",
+    "src/app/(dashboard)/payments/page.tsx",
+    "src/app/(dashboard)/payments/new/page.tsx",
+    "src/app/(dashboard)/payments/actions.ts",
+    "src/app/(dashboard)/payments/data.ts",
+    "src/app/(dashboard)/payments/labels.ts",
+    "src/app/(dashboard)/payments/error.tsx",
+    "src/app/(dashboard)/payments/loading.tsx",
+    "src/app/(dashboard)/catalog/page.tsx",
+    "src/app/(dashboard)/catalog/labels.ts",
+    "src/app/(dashboard)/catalog/error.tsx",
+    "src/app/(dashboard)/catalog/loading.tsx",
+    "src/components/orders/order-list.tsx",
+    "src/components/orders/order-actions.tsx",
+    "src/components/orders/packing-card.tsx",
+    "src/components/orders/bags-sheet.tsx",
+    "src/components/orders/dispatch-form.tsx",
+    "src/components/orders/checklist-item.tsx",
+    "src/components/orders/checklist-view.tsx",
+    "src/components/orders/filter-chips.tsx",
+    "src/components/orders/order-dots.tsx",
+    "src/components/orders/flash-toast.tsx",
+    "src/components/payments/money-list.tsx",
+    "src/components/payments/payment-form.tsx",
+    "src/components/catalog/product-list.tsx",
+    "docs/qa/sprint-b/dev3-report.json",
+    "tasks/todo.md"
+  ],
+  "commands_run": [
+    {
+      "cmd": "npm run db:seed:sql (run twice)",
+      "exit_code": 0,
+      "output_tail": "ok 0000..0006 migrations (0006 51 ms); ok 01_core, 02_inquiries, 03_samples_quotes, 04_orders_money; Seed completed. Second run identical. Counts in org 1111: orders 3, order_items 3, dispatches 2, payments 4."
+    },
+    {
+      "cmd": "psql: SELECT * FROM v_home_kpis / v_order_balances as owner 22222222-...221 (SET ROLE authenticated, rolled back)",
+      "exit_code": 0,
+      "output_tail": "new_inquiries 2 | quotes_waiting 1 | orders_in_production 1 | money_due_inr 511875.00 | money_due_usd 18900.00 | money_due_about_inr 2104200.00 | money_overdue_count 1 | followups_today 5 | papers_pending 1; ORD-0001 paid 0, ORD-0002 overdue 18900 (6 days), ORD-0003 due 511875"
+    },
+    {
+      "cmd": "psql demo replay as sales/ops/accountant in a rolled-back transaction",
+      "exit_code": 0,
+      "output_tail": "QTN-2627-0003 accept -> ORD-0004 / PI-2627-0004 (ship by +21); ORD-0003 packed 200 + truck -> INV-2627-0003 / SDN-2627-0003, 'Balance Rs 5,11,875 due' at +15 days; coo tick -> papers_pending 0; $18,900 receipt -> REC-2627-0005, rate 84.2500, ORD-0002 paid, 0 open follow-ups. Rolled back."
+    },
+    {
+      "cmd": "npm run typecheck",
+      "exit_code": 0,
+      "output_tail": "tsc --noEmit: no output (0 errors)"
+    },
+    {
+      "cmd": "npm run lint",
+      "exit_code": 0,
+      "output_tail": "No ESLint warnings or errors"
+    },
+    {
+      "cmd": "npx vitest run tests/orders-payments.test.ts",
+      "exit_code": 0,
+      "output_tail": "tests/orders-payments.test.ts (22 tests) passed; Test Files 1 passed (1); Tests 22 passed (22)"
+    },
+    {
+      "cmd": "npm test",
+      "exit_code": 0,
+      "output_tail": "orders-payments 22, quotes 16, security-fixes 18, inquiries 15, rls-tenant-isolation 5; Test Files 5 passed (5); Tests 76 passed (76)"
+    },
+    {
+      "cmd": "npm run ci:tenant-check",
+      "exit_code": 0,
+      "output_tail": "CI Tenant Check PASSED: every public table has org_id, an index, ENABLE + FORCE RLS and an org policy; every view is security_invoker; ... all SECURITY DEFINER functions are allowlisted; number generators are locked."
+    },
+    {
+      "cmd": "npx next build",
+      "exit_code": 0,
+      "output_tail": "Compiled successfully; /catalog, /orders, /orders/[id], /orders/[id]/checklist, /orders/[id]/dispatch, /orders/[id]/print, /orders/[id]/print/[doc], /payments, /payments/new all dynamic (f)"
+    },
+    {
+      "cmd": "npx next start -p 3113 + curl (unauthenticated), server stopped afterwards",
+      "exit_code": 0,
+      "output_tail": "/orders, /orders/<id>, /orders/<id>?from_quote=x, /orders/<id>/dispatch, /checklist, /print/pi, /print/invoice, /print/slip, /print?doc=sdn, /payments, /payments?filter=due, /payments/new?order=, /catalog, / -> 307 /login; /login 200; no 500; port 3113 free after kill"
+    }
+  ],
+  "all_checks_green": true,
+  "contract_deviations": [
+    "fn_quote_accept: follows contract 4.4 rather than the task text. A stored 'expired' quote, or a sent quote whose valid_till has passed, raises quote_expired (P0001). Rejected or accepted quotes raise invalid_transition. A quote with no items raises no_items. A NULL or out-of-range advance % raises bad_payload.",
+    "Error codes the contract leaves open: fn_payment_record on a cancelled order raises invalid_transition (P0001). fn_dispatch_tick on a truck dispatch, an unknown key or NULL done raises bad_payload. fn_order_set_status with an unknown status code raises bad_payload.",
+    "fn_order_dispatch: p_bags NULL defaults to orders.packed_bags. Vehicle and container numbers are trimmed and upper-cased. Container-only fields are stored as NULL for truck mode.",
+    "v_order_balances adds 4 columns after the contract's list: payment_terms, phone (primary contact), latest_invoice_no and created_at, for the Money list and the WhatsApp reminder. v_money_due.phone comes from that column.",
+    "New helper fn_format_money(amount, currency) builds the amount text in the system follow-up notes ('$18,900', 'Rs 5,11,875' with the rupee sign). It is IMMUTABLE and not SECURITY DEFINER, so it needs no allowlist entry.",
+    "Extra constraints and index not in the contract: CHECK currency ~ '^[A-Z]{3}$' on orders and payments, CHECK dispatched_kg >= 0, and an index on orders (org_id, quotation_id).",
+    "Seed 04 resets the story on every run: it deletes non-seed payments, dispatches and items on the three seeded orders (ORD-0001..0003) before upserting. Orders created during a demo (ORD-0004 and later) are kept.",
+    "Print routes follow screens.md: /orders/[id]/print/pi, /print/invoice and /print/slip, all served by one page (print/[doc]). The contract 6.1 form /orders/[id]/print?doc=pi|invoice|sdn&dispatch= redirects to them.",
+    "The orders and payments ActionResult adds an optional `code` on success (the invoice or receipt number). It is a superset of the contract 6.2 type.",
+    "Money list: added a 'To collect' chip for ?filter=due (Late + Waiting), between All and Late / Waiting / Paid.",
+    "The order detail stepper shows no per-step dates (StatusStepper has no date prop, and audit_log is readable only with the audit module). It shows 'since <status_changed_at>' instead."
+  ],
+  "open_issues": [
+    "/payments/[id] and the receipt print (print)/payments/[id]/print are listed under Dev-3 in contracts 6.1 but are not built. The task deliverables and screens.md 21-22 do not need them; the success screen offers 'Share receipt on WhatsApp' instead.",
+    "No authenticated UI verification. There is no Supabase stack and no hosted credentials, so pages were checked by typecheck, build and unauthenticated 307 -> /login only. All page reads are single-table PostgREST selects with no embedding, to keep the risk low.",
+    "Partial dispatch is not supported in the UI: fn_order_dispatch moves the order to dispatched, so a second dispatch is refused. This matches contract 4.4 and the demo scope.",
+    "The 'demo seed' Vitest case re-runs seeds 02-04 inside a rolled-back transaction. It skips itself when the demo org already has rows that a demo run added (ORD-0004+, INQ-0011+, QTN-0005+).",
+    "next build was run in the shared tree, so .next now holds my build output."
+  ],
+  "notes_for_qa": [
+    "Seed acceptance (owner Home): New inquiries 2, Quotes waiting 1, Orders in production 1, Money Rs 5,11,875 + $18,900 with 'about Rs 21,04,200' and '1 Late' on a red tile. Money list: Al-Barakah Late 6 days, Haldiram Waiting 'after dispatch', Everest Paid.",
+    "Order ORD-0002: Dispatched with a ship icon, Money Late $18,900 with Advance OK, container MSKU 482913-7 at Pipavav, ETA T+12, BL MEDUPV2246118, Export papers 7 of 8. Ticking COO makes it 8 of 8 (green pill).",
+    "Plant (ops@) on /orders/<ORD-0003>: packing card with 200 bags x 25 kg = 5 MT, 'Packing started' done line, 'How many bags?' -> Ready, then 'Loaded' opens the short dispatch form (mode, number, bags; date and qty under More).",
+    "Live demo numbers, verified in a rolled-back run: ORD-0004 / PI-2627-0004 from QTN-0003, INV-2627-0003 / SDN-2627-0003 for the ORD-0003 truck, REC-2627-0005 for the $18,900 receipt.",
+    "Role walls to try: Sales sees Money numbers but no 'Money received' button. Only the owner sees 'Cancel order' (under More, before dispatch). Plant cannot untick or tick phyto/coo, cannot mark Delivered, and gets /access-denied on /print/pi and /print/invoice but can print the slip.",
+    "Products: owner and accountant see a lock icon with the cost per kg (from v_product_costs). Sales and Plant see no cost, and the query is not even run for them.",
+    "Raw-code check: ports Pipavav / Mundra are proper nouns. Statuses, modes, pay modes and checklist keys always go through labels. Printed papers are English only."
+  ],
+  "notes_for_other_devs": [
+    "dev2: /quotes/[id]/accept already calls fn_quote_accept with the contract parameter names. The order page now shows the msg.order_created toast when it opens with ?from_quote=<id> (your redirect), so you need no change. Accept errors: quote_expired / invalid_transition / no_items / bad_payload (P0001); module or cross-org is 42501.",
+    "dev1: v_order_balances and v_money_due keep the contract column names your buyer page reads (due, days_overdue, money_status, due_date, total_due, max_days_overdue). v_order_balances adds payment_terms, phone, latest_invoice_no and created_at at the end. Order follow-ups (entity_type 'order') always carry buyer_id, so v_followups_today shows the buyer name and phone.",
+    "dev2 (ci-tenant-check owner): there are no new SECURITY DEFINER names. All 7 functions in 0006 were already in SECURITY_DEFINER_ALLOWLIST, and fn_format_money is a plain IMMUTABLE function. I did not touch scripts/ci-tenant-check.ts.",
+    "All: orders, order_items, dispatches and payments have no write grant for authenticated. Tests and seeds must insert them as postgres or through the functions. Delete children before orders when cleaning up: dispatches and payments reference orders ON DELETE RESTRICT."
+  ],
+  "fix_round": {
+    "date": "2026-11-16",
+    "findings": [
+      {
+        "id": "G2-04",
+        "role": "co_owner (dev3 part: orders/helpers.ts isExportCountry)",
+        "outcome": "fixed",
+        "change": "orders/helpers.ts isExportCountry(country) replaced by isExportBuyer({ buyer_type, country }): buyer_type export_* decides (isExportType from src/types/buyers.ts); with no type it falls back to the contract 6.3 rule country <> 'India' exactly as quotes/helpers.ts isExportBuyer reads it ('' = export, null = India, trimmed, case-insensitive). loadOrderDetail now selects buyers.buyer_type into OrderBuyerView. Call sites: /orders/[id] (container default, WhatsApp language, Money reminder), /orders/[id]/dispatch (Truck/Container default), /orders/[id]/print/[doc] (PI export layout, invoice title, WhatsApp language).",
+        "evidence": "tests/orders-payments.test.ts: new pure test (export_importer + '' country -> export; domestic_* + India -> India; no type: '' -> export, null -> India) and a DB test that every demo-org buyer gets the same answer from the type rule and the country rule; operations user reads buyer_type under RLS (psql as authenticated)."
+      }
+    ],
+    "files_changed": [
+      "src/app/(dashboard)/orders/helpers.ts",
+      "src/app/(dashboard)/orders/data.ts",
+      "src/types/orders.ts",
+      "src/app/(dashboard)/orders/[id]/page.tsx",
+      "src/app/(dashboard)/orders/[id]/dispatch/page.tsx",
+      "src/app/(print)/orders/[id]/print/[doc]/page.tsx",
+      "tests/orders-payments.test.ts"
+    ],
+    "commands_run": [
+      {
+        "cmd": "npx vitest run tests/orders-payments.test.ts",
+        "exit_code": 0,
+        "output_tail": "Test Files 1 passed (1); Tests 24 passed (24)"
+      },
+      {
+        "cmd": "npm run typecheck",
+        "exit_code": 1,
+        "output_tail": "7 x TS2802 only in docs/qa/sprint-b/gate-2-evidence/labelcheck.ts (QA evidence script picked up by tsconfig include **/*.ts); 0 errors in src/ or tests/"
+      },
+      {
+        "cmd": "npm run lint",
+        "exit_code": 0,
+        "output_tail": "No ESLint warnings or errors"
+      },
+      {
+        "cmd": "npm test",
+        "exit_code": 0,
+        "output_tail": "Test Files 5 passed (5); Tests 93 passed (93)"
+      },
+      {
+        "cmd": "npm run ci:tenant-check",
+        "exit_code": 0,
+        "output_tail": "CI Tenant Check PASSED"
+      },
+      {
+        "cmd": "npx next build",
+        "exit_code": 1,
+        "output_tail": "Compiled successfully; Failed to compile: ./docs/qa/sprint-b/gate-2-evidence/labelcheck.ts:52:44 Type error TS2802"
+      },
+      {
+        "cmd": "npx next build (copy of the tree without docs/, scratchpad)",
+        "exit_code": 0,
+        "output_tail": "Generating static pages (21/21); all 33 routes built incl. /orders/[id], /orders/[id]/dispatch, /orders/[id]/print/[doc]"
+      }
+    ],
+    "all_checks_green": false,
+    "open_issues": [
+      "npm run typecheck and npx next build fail only on docs/qa/sprint-b/gate-2-evidence/labelcheck.ts (QA's evidence script, TS2802 on matchAll / Set iteration): tsconfig include **/*.ts picks it up. QA: rename it to .mjs/.cjs (like demo-flow.cjs) or move it out of the tree; or the tsconfig owner excludes docs/**. Not a dev3 file, not edited.",
+      "Quotes still decide export by country only (quotes/helpers.ts isExportBuyer, fn_quote_accept uses buyer.country = 'India'). Both rules now agree on every buyer the app can save (domestic_* always gets 'India'; export_* gets a typed country or the old ''), but a domestic_* buyer with a non-India country would still read as India in orders and export in quotes."
+    ]
+  }
+}

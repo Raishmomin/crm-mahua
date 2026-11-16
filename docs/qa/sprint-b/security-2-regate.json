@@ -1,0 +1,172 @@
+{
+ "verdict": "pass",
+ "summary": "Security re-gate after the Sprint B fix round. All four routed findings are FIXED. Each was proven by SQL as impersonated users inside one rolled-back transaction, and by reading the code. SEC2-01 (high, dev2): an EUR or XYZ item from sales or the accountant gets below_floor_price no_price. Switching an EUR->INR or USD->INR draft below the new floor gets below_floor_price 125.00, and the header stays unchanged. fn_quote_update_draft saves the whole edit or nothing. fn_quote_send re-derives the floor and catches a floor raised after the draft was saved (150.00). Another org's product gets bad_payload product_id, the same error as a random id, so no GST rate leaks. No order was created. SEC2-02 (high, dev2+dev1): supplied INQ, BUY, SMP and QTN numbers and a forged PI number are replaced by the next generated number, later inserts succeed, the counters advance, and changing buyer_code, quote_no or code is refused with permission denied. SEC2-03 (high, dev1+dev2): Plant's writes on buyers and buyer_contacts touch 0 rows or raise an RLS error, ORD-0002 stays overdue, and both server actions plus the pages refuse Plant. SEC2-04 (major, dev1): 25 open-redirect payloads produce 0 external navigations through safeInternalPath on the server, the client re-check and Next's URL resolution. No new blocker or high finding. ci:tenant-check, npm test (93/93), lint and typecheck all pass. The logged-in HTTP walkthrough is still blocked because there is no hosted Supabase.",
+ "checks_run": [
+  {
+   "check": "Live catalog matches the fix round (functions, triggers, policies, grants)",
+   "result": "pass",
+   "output_tail": "guard_has_no_price t t; send_rederives t; assign_code_caller t t; trg_quotations_currency_recheck AFTER UPDATE OF currency WHEN old.currency IS DISTINCT FROM new.currency; buyers_update ... fn_user_role() = ANY ('{owner,accountant,sales}'); buyers tbl_upd f, buyer_code upd f"
+  },
+  {
+   "check": "New and changed functions: definer flag, search_path, EXECUTE",
+   "result": "pass",
+   "output_tail": "fn_quote_update_draft invoker search_path=public auth t anon f; fn_quotation_currency_recheck invoker auth f; fn_quote_item_guard / fn_assign_code / fn_assign_doc_no definer search_path=public auth f"
+  },
+  {
+   "check": "SEC2-01 A: currency with no price list (sales, accountant, owner override, then sales send)",
+   "result": "pass",
+   "output_tail": "EUR 0.01/kg -> below_floor_price DETAIL no_price; EUR 1000/MT -> no_price; XYZ -> no_price; accountant -> no_price; owner saves 0.01|(null)|0.00; sales fn_quote_send on it -> no_price, status draft"
+  },
+  {
+   "check": "SEC2-01 B: currency switch after items (C6, C8)",
+   "result": "pass",
+   "output_tail": "owner EUR 1/kg, sales UPDATE currency=INR -> below_floor_price 125.00; send -> no_price; accept -> invalid_transition draft -> accepted; orders_from_c6 0; USD 2.00/kg -> INR -> 125.00, row stays USD|2.00|1.55|0.00"
+  },
+  {
+   "check": "SEC2-01 B: fn_quote_update_draft (updateQuoteAction path)",
+   "result": "pass",
+   "output_tail": "INR 2/kg -> 125.00, draft unchanged USD|10000.00|2.00|1.55; INR 2000/MT -> 125000.00; INR 130/kg -> QTN-2627-0007 INR|650000.00|32500.00|682500.00|130.00|125.00|5.00"
+  },
+  {
+   "check": "SEC2-01 B: stale floor at send",
+   "result": "pass",
+   "output_tail": "owner raises R-FLK-C INR floor 125->150; sales fn_quote_send(130/kg draft) -> below_floor_price 150.00, stays draft; owner-made 1/kg draft sent by sales -> 150.00; control 170/kg on floor 165 -> sent 17850.00"
+  },
+  {
+   "check": "SEC2-01 C: product of another org",
+   "result": "pass",
+   "output_tail": "sales INSERT org B product -> bad_payload product_id; random uuid -> same error; owner -> same; UPDATE item to org B product -> same; fn_quote_update_draft -> same; items_on_c7 0"
+  },
+  {
+   "check": "SEC2-01 regression C1-C4",
+   "result": "pass",
+   "output_tail": "100/kg -> below_floor_price 150.00; MT 124 -> 150000.00; forged floor_price_at_time=1 -> 150.00"
+  },
+  {
+   "check": "New entry point fn_quote_update_draft",
+   "result": "pass",
+   "output_tail": "org B id -> not_found; sent QTN-0003 -> invalid_transition sent -> draft; org B buyer -> RLS violation on quotations; injected floor_price_at_time/org_id ignored -> below_floor_price; 21 items -> bad_payload items; Plant -> Access denied: module quotes is required; QTN-0004 unchanged"
+  },
+  {
+   "check": "SEC2-02: pre-claim and forge numbers as sales",
+   "result": "pass",
+   "output_tail": "INQ-0012 -> INQ-0011, then INQ-0012, INQ-0013, INQ-0014; INQ-9999 -> INQ-0015; BUY-0006 -> BUY-0005, then BUY-0006; SMP-0005 -> SMP-0004, then SMP-0005; QTN-2627-0012 -> QTN-2627-0011; PI-2627-0099 -> QTN-2627-0012; counters BUY 6 INQ 15 SMP 6; no 23505"
+  },
+  {
+   "check": "SEC2-02: rewrite numbers after insert",
+   "result": "pass",
+   "output_tail": "UPDATE buyers SET buyer_code/org_id/id/created_at -> 4 x permission denied for table buyers; UPDATE quotations quote_no / inquiries code / samples code -> permission denied"
+  },
+  {
+   "check": "SEC2-02: Plant and trusted seed path",
+   "result": "pass",
+   "output_tail": "ops SMP-0099 -> SMP-0006; postgres INQ-7777 -> kept"
+  },
+  {
+   "check": "SEC2-03: Plant writes on buyers / buyer_contacts",
+   "result": "pass",
+   "output_tail": "UPDATE buyers credit 365 -> UPDATE 0; INSERT buyers -> RLS violation; UPDATE buyer_contacts phone -> UPDATE 0; INSERT buyer_contacts -> RLS violation; DELETE contacts 0; DELETE buyers 0; ORD-0002 | 2026-11-10 | 6 | overdue"
+  },
+  {
+   "check": "SEC2-03: control and cross-org parent",
+   "result": "pass",
+   "output_tail": "sales UPDATE buyers -> UPDATE 1; accountant -> UPDATE 1; sales INSERT buyer_contacts for org B buyer -> RLS violation"
+  },
+  {
+   "check": "SEC2-03: app walls (code read)",
+   "result": "pass",
+   "output_tail": "buyers/actions.ts:123-124 and :170-171 hasModule('buyers') + canWriteBuyers(role); /buyers/new:28 and /buyers/[id]/edit:20 redirect Plant; inquiries/actions.ts:108-115 '+ New buyer' writes no buyer row"
+  },
+  {
+   "check": "SEC2-04: safeInternalPath fuzz (server check, client re-check, Next URL resolution)",
+   "result": "pass",
+   "output_tail": "25 payloads incl. /\\evil, /<tab>/evil, /\\n/evil, /.//evil, /x/..//evil, \\\\evil, https://evil, javascript: -> external_navigations 0; {id} / %7Bid%7D flows still resolve in-app"
+  },
+  {
+   "check": "Other dynamic redirects in src",
+   "result": "pass",
+   "output_tail": "only buyer-form.tsx:126 (checked) and inquiry-actions.tsx:68 (server ids); middleware has no redirects"
+  },
+  {
+   "check": "No service-role client in request paths",
+   "result": "pass",
+   "output_tail": "only src/lib/supabase/admin.ts itself and scripts/seed-users.ts:30"
+  },
+  {
+   "check": "npm run ci:tenant-check",
+   "result": "pass",
+   "output_tail": "CI Tenant Check PASSED: every public table has org_id, an index, ENABLE + FORCE RLS and an org policy; every view is security_invoker; web roles hold no TRUNCATE / REFERENCES / TRIGGER; all SECURITY DEFINER functions are allowlisted; number generators are locked."
+  },
+  {
+   "check": "npm test",
+   "result": "pass",
+   "output_tail": "quotes 23, orders-payments 24, inquiries 23, security-fixes 18, rls-tenant-isolation 5; Test Files 5 passed (5); Tests 93 passed (93)"
+  },
+  {
+   "check": "npm run lint",
+   "result": "pass",
+   "output_tail": "No ESLint warnings or errors"
+  },
+  {
+   "check": "npx tsc --noEmit (npm run typecheck)",
+   "result": "pass",
+   "output_tail": "exit 0, no output"
+  },
+  {
+   "check": "Nothing persisted after the probe transaction",
+   "result": "pass",
+   "output_tail": "inq_ctr 10 | buy_ctr 4 | smp_ctr 3 | qtn_ctr 4 | qtn 4 | ord 3 | buy 4 | rflk_inr_floor 125.00 | orgs 1"
+  },
+  {
+   "check": "Logged-in walkthrough over HTTP",
+   "result": "blocked",
+   "output_tail": "No hosted Supabase credentials and no local GoTrue; server actions verified by code read + devs' Vitest with faked session, DB walls by SQL impersonation"
+  }
+ ],
+ "findings": [],
+ "finding_status": [
+  {
+   "id": "SEC2-01",
+   "severity": "high",
+   "owner": "dev2",
+   "status": "fixed",
+   "file_ref": "supabase/migrations/0005_samples_quotes.sql:239-339,482-548,602-672; src/app/(dashboard)/quotes/actions.ts:100-134; src/components/quotes/quote-form.tsx:217-219,303-306"
+  },
+  {
+   "id": "SEC2-02",
+   "severity": "high",
+   "owner": "dev2",
+   "co_owners": [
+    "dev1"
+   ],
+   "status": "fixed",
+   "file_ref": "supabase/migrations/0003_security_fixes.sql:153-202; supabase/migrations/0004_inquiries_followups.sql:383-388"
+  },
+  {
+   "id": "SEC2-03",
+   "severity": "high",
+   "owner": "dev1",
+   "co_owners": [
+    "dev2"
+   ],
+   "status": "fixed",
+   "file_ref": "supabase/migrations/0003_security_fixes.sql:418-468; src/app/(dashboard)/buyers/actions.ts:123-124,170-171; src/app/(dashboard)/inquiries/actions.ts:108-115"
+  },
+  {
+   "id": "SEC2-04",
+   "severity": "major",
+   "owner": "dev1",
+   "status": "fixed",
+   "file_ref": "src/components/buyers/helpers.ts:13-23; src/app/(dashboard)/buyers/new/page.tsx:41; src/components/buyers/buyer-form.tsx:123-126"
+  }
+ ],
+ "blocked_waiting_for_credentials": [
+  "Logged-in HTTP walkthrough of the server actions (hosted Supabase URL, anon key and service-role key still pending)"
+ ],
+ "usability_notes": [
+  "The owner can still quote in a currency that has no price list, by design. Such an order is left out of the Home money tile, which sums INR and USD only. This is a product decision for dev2 and dev3, not a security issue.",
+  "Plant can still add notes and reminders on a buyer page (follow_ups with entity_type 'buyer' map to the buyers module). No money, terms or contacts change. This is a product decision; dev1 already raised it for QA.",
+  "SEC2-05 to SEC2-11 from review 2 were not assigned this round and were not re-verified. A side effect was seen: the G2-03 same-org parent checks now refuse another org's buyer on quotations and buyer_contacts, so SEC2-06 looks largely addressed."
+ ],
+ "report_path": "/home/raish/raish/mahua-crm/docs/security/review-2-regate.md"
+}

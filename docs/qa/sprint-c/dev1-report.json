@@ -1,0 +1,190 @@
+{
+  "id": "dev1",
+  "summary": "Sprint C Dev-1: A9 row-start and delete policies in 0004 (G2-05, SEC2-05, SEC2-11), SEC2-06 confirmed closed for 0004 (one missing UPDATE test added), '+ Add note' at full 48px size (G2-07), seed-users reads DEMO_PASSWORD and never prints it (SEC1-12), README rewritten for a non-developer helper and hosted-supabase.md moved to DEMO_MODE / DEMO_PASSWORD (A11). README local-database commands replayed on scratch DB mahua_dev1 (seeded twice, then dropped). All checks green; seed story intact.",
+  "items": [
+    {
+      "id": "A9-0004 (G2-05, SEC2-05, SEC2-11)",
+      "status": "fixed",
+      "evidence": "supabase/migrations/0004_inquiries_followups.sql: inquiries_insert adds status = 'new' AND lost_reason IS NULL AND closed_at IS NULL AND (created_by IS NULL OR created_by = auth.uid()); follow_ups_insert adds done_by IS NULL AND ((done = false AND done_at IS NULL) OR (due_on IS NULL AND done = true)) AND (created_by IS NULL OR created_by = auth.uid()); follow_ups_delete = module AND (fn_user_role() = 'owner' OR (due_on IS NULL AND done_by IS NULL AND created_by = auth.uid())). New Vitest cases in tests/inquiries.test.ts: sales insert as won / quoted / lost_reason / closed_at / created_by=owner -> 42501; follow-up done_by=owner, pre-ticked reminder, pending with done_at, created_by=owner -> 42501; sales DELETE 'Balance $18,900 due' -> 0 rows (also after fn_follow_up_done + UPDATE due_on = NULL -> 0 rows); own pending reminder -> 0; own plain note -> 1; Plant's note -> 0; owner delete of system reminder + others -> 3. App shapes still save: addFollowUpAction note + reminder, addOrderNoteAction (no created_by), createInquiryAction (assigned_to + created_by = caller), Save as buyer (UPDATE buyer_id, existing G2-03 test), Home Done (fn_follow_up_done, existing tests), definer row shape (done false, due_on set, created_by auth.uid()). npx vitest run tests/inquiries.test.ts: 26 passed. Definers: quotes.test.ts 23/23 and orders-payments.test.ts 26/26 pass (they assert the follow-ups fn_sample_set_status, fn_quote_send, fn_quote_accept, fn_order_dispatch, fn_dispatch_tick insert); docs/qa/sprint-c/dev1-definer-owner-rls.cjs on mahua_dev1 with a NOSUPERUSER NOBYPASSRLS function owner: fn_sample_set_status(SMP-0003, sent) as sales inserts 'Sample SMP-0003 sent, ask for result' (done false, done_by null, created_by = caller) through the new policy."
+    },
+    {
+      "id": "SEC2-06 (0004 part)",
+      "status": "fixed",
+      "evidence": "G2-03 checks already cover inquiries.buyer_id / product_id / assigned_to and follow_ups.buyer_id on INSERT and UPDATE (0004 inquiries_insert/update, follow_ups_insert/update). Tests existed for all except UPDATE inquiries.assigned_to; added `UPDATE inquiries SET assigned_to = OWNER_B` -> 42501 in the G2-03 test. A9 also closes the profile oracle via created_by (pinned to auth.uid()) and done_by (pinned NULL; neither is in the web UPDATE grant). follow_ups.entity_id is polymorphic, not an FK, so no existence oracle."
+    },
+    {
+      "id": "G2-07",
+      "status": "fixed",
+      "evidence": "src/components/followups/notes-section.tsx: '+ Add note' Button no longer passes size=\"sm\" (default h-12 = 48px). The row 'Done' button keeps sm inside 64px rows (allowed by components.md 3). typecheck 0, next build OK."
+    },
+    {
+      "id": "SEC1-12",
+      "status": "fixed",
+      "evidence": "scripts/seed-users.ts: DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'DemoPass123!' (local demo fallback, A11); the final log line is 'Demo users ready. Password for all four: the DEMO_PASSWORD you set (not printed).' or a warning that the local default was used; no line prints the value. grep of console.* lines: none interpolates DEMO_PASSWORD."
+    },
+    {
+      "id": "README (run the demo in 5 commands)",
+      "status": "fixed",
+      "evidence": "README.md top rewritten: what this is (2 lines); 'Run the demo in 5 commands' (npm install; cp .env.example .env.local + fill 4 Supabase values + DEMO_MODE / DEMO_PASSWORD; npm run db:seed; npm run build; npm start; open http://localhost:3000, tap Try as); 'Demo logins' (job, email, what they see; password = 'the DEMO_PASSWORD you set'); 'Local database only (tests)' (docker compose up -d or the existing container, npm run db:seed:sql, npm test, npm run ci:tenant-check); links to docs/setup/hosted-supabase.md and docs/design/demo-script.md. Every npm command matches package.json scripts. Replayed on scratch DB mahua_dev1 (created via node pg, DATABASE_URL override): db:seed:sql twice 'Seed completed.' (7 migrations, 4 seeds each), npm test 96/96 in 5 files, ci:tenant-check PASSED, seed story OK; then DROP DATABASE (0 left). docker-compose.yml validated with `docker-compose config -q` (not started: port 5432 is held by onion-crm-postgres; this host has the standalone docker-compose v2.36.2, which the README mentions)."
+    },
+    {
+      "id": "docs/setup/hosted-supabase.md consistent with A11",
+      "status": "fixed",
+      "evidence": "Step 2 adds DEMO_MODE / DEMO_PASSWORD (server-only, never NEXT_PUBLIC_); step 3 says the seed uses DEMO_PASSWORD and never prints it; step 4 runs npm run build + npm start, login table without passwords; section 6 uses DEMO_MODE=false and removing DEMO_PASSWORD; troubleshooting rows for wrong password and missing Try as buttons. grep 'DemoPass|NEXT_PUBLIC_DEMO' in README.md and hosted-supabase.md: 0 hits."
+    }
+  ],
+  "files_changed": [
+    "supabase/migrations/0004_inquiries_followups.sql",
+    "tests/inquiries.test.ts",
+    "src/components/followups/notes-section.tsx",
+    "scripts/seed-users.ts",
+    "README.md",
+    "docs/setup/hosted-supabase.md",
+    "docs/qa/sprint-c/dev1-seed-story.cjs",
+    "docs/qa/sprint-c/dev1-definer-owner-rls.cjs",
+    "docs/qa/sprint-c/dev1-report.json",
+    "tasks/todo.md"
+  ],
+  "commands_run": [
+    {
+      "cmd": "npm run db:seed:sql",
+      "exit_code": 0,
+      "output_tail": "ok 0000..0006 migrations; ok seed 01_core, 02_inquiries, 03_samples_quotes, 04_orders_money; Seed completed."
+    },
+    {
+      "cmd": "npx vitest run tests/inquiries.test.ts",
+      "exit_code": 0,
+      "output_tail": "tests/inquiries.test.ts (26 tests); Test Files 1 passed (1); Tests 26 passed (26)"
+    },
+    {
+      "cmd": "npm run typecheck",
+      "exit_code": 0,
+      "output_tail": "tsc --noEmit (no output)"
+    },
+    {
+      "cmd": "npm run lint",
+      "exit_code": 0,
+      "output_tail": "No ESLint warnings or errors"
+    },
+    {
+      "cmd": "npm test",
+      "exit_code": 0,
+      "output_tail": "orders-payments 26, quotes 23, inquiries 26, security-fixes 18, rls-tenant-isolation 5; Test Files 5 passed (5); Tests 98 passed (98)"
+    },
+    {
+      "cmd": "npm run ci:tenant-check",
+      "exit_code": 0,
+      "output_tail": "CI Tenant Check PASSED: every public table has org_id, an index, ENABLE + FORCE RLS and an org policy; every view is security_invoker; ... all SECURITY DEFINER functions are allowlisted; number generators are locked."
+    },
+    {
+      "cmd": "npx next build",
+      "exit_code": 0,
+      "output_tail": "Compiled successfully; 21/21 static pages; 33 dynamic routes incl. /inquiries, /inquiries/[id], /buyers, /buyers/[id]. (A first run showed a transient 'formatShortDate is not exported' warning while dev3 was editing src/lib/utils.ts; the re-run was clean.)"
+    },
+    {
+      "cmd": "npx next start -p 3131 + curl (unauthenticated), then server stopped",
+      "exit_code": 0,
+      "output_tail": "/, /inquiries, /inquiries/new, /inquiries/<id>, /buyers, /buyers/new -> 307 /login; /login -> 200; port 3131 closed after kill"
+    },
+    {
+      "cmd": "node docs/qa/sprint-c/dev1-seed-story.cjs (onion_crm, after final db:seed:sql)",
+      "exit_code": 0,
+      "output_tail": "owner v_home_kpis: new_inquiries 2, quotes_waiting 1, orders_in_production 1, money_due_inr 511875.00, money_due_usd 18900.00, money_overdue_count 1, followups_today 5; SEED STORY OK"
+    },
+    {
+      "cmd": "scratch DB: CREATE DATABASE mahua_dev1; DATABASE_URL=.../mahua_dev1 npm run db:seed:sql (x2); npm test; npm run ci:tenant-check; seed story; DROP DATABASE",
+      "exit_code": 0,
+      "output_tail": "seed run 1 + 2: Seed completed.; SEED STORY OK; Test Files 5 passed (5), Tests 96 passed (96); CI Tenant Check PASSED; mahua_dev1 dropped; remaining: 0"
+    },
+    {
+      "cmd": "DATABASE_URL=.../mahua_dev1 node docs/qa/sprint-c/dev1-definer-owner-rls.cjs",
+      "exit_code": 0,
+      "output_tail": "owner {rolsuper:false, rolbypassrls:false}; REFUSED sales fn_quote_send under RLS: 42501 new row violates row-level security policy for table \"quotations\"; ok sales fn_sample_set_status(SMP-0003, sent): follow-up done false, done_by null, created_by = caller; rolled back"
+    },
+    {
+      "cmd": "docker-compose config -q",
+      "exit_code": 0,
+      "output_tail": "compose file valid"
+    }
+  ],
+  "all_checks_green": true,
+  "contract_deviations": [
+    "A9 follow_ups DELETE: a non-owner may delete own plain notes only when done_by IS NULL as well as due_on IS NULL. Plain notes are always inserted with done_by NULL (A9 insert pin) and done_by is not in the web UPDATE grant, so this only stops a ticked reminder whose date was cleared by UPDATE (due_on is in the grant) from becoming deletable.",
+    "A9 follow_ups INSERT: the pending branch also requires done_at IS NULL (the SEC2-05 fix text); every app path and definer already inserts pending reminders with done_at NULL."
+  ],
+  "open_issues": [
+    "Hosted readiness (security sign-off): with a function owner that does NOT bypass RLS, fn_quote_send fails on the quotations UPDATE policy (42501) and the 0006 function-only tables (orders, payments, dispatches have SELECT policies only) would refuse writes too. The 0005/0006 definers therefore require an RLS-bypassing owner on hosted Supabase (expected: the postgres role has BYPASSRLS there; confirm with SELECT rolbypassrls FROM pg_roles WHERE rolname = current_user on the hosted DB). The A9 follow_ups checks themselves pass under RLS (fn_sample_set_status proof).",
+    "docs/design/demo-script.md line 5 still says 'NEXT_PUBLIC_DEMO_MODE \"Try as\" buttons'; A11 retired it (lead's file, not edited).",
+    "Web login still cannot be verified (no Supabase stack / hosted credentials): README 'Run the demo in 5 commands' is checked against package.json and the hosted guide, not executed end to end."
+  ],
+  "notes_for_qa": [
+    "After npm run db:seed:sql, as sales: DELETE FROM follow_ups WHERE note LIKE 'Balance %' -> 0 rows; as owner (rolled back) -> 1. INSERT inquiries ... status 'won' as sales -> 42501.",
+    "'+ Add note' on inquiry / buyer / order detail is now 48px high (h-12) in the section header.",
+    "README local steps replay: create a scratch DB, export DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/<scratch>, then npm run db:seed:sql (twice), npm test, npm run ci:tenant-check. docker compose up -d needs the plugin; this host only has docker-compose (README mentions both).",
+    "Evidence scripts: docs/qa/sprint-c/dev1-seed-story.cjs (seed story + policy list) and docs/qa/sprint-c/dev1-definer-owner-rls.cjs (scratch DB only; refuses any other DB)."
+  ],
+  "notes_for_other_devs": [
+    "dev3: README and hosted-supabase.md now tell helpers to fill DEMO_MODE and DEMO_PASSWORD from .env.example; .env.example still has NEXT_PUBLIC_DEMO_MODE=true and no DEMO_PASSWORD line. Please replace it with DEMO_MODE=true and DEMO_PASSWORD= (empty or a placeholder comment) per A11.",
+    "dev3: seed-users.ts uses process.env.DEMO_PASSWORD untrimmed with fallback 'DemoPass123!' when unset; the Try-as server action should read the same env var the same way (same fallback for the local demo, or refuse when DEMO_MODE=true and DEMO_PASSWORD is empty) so seeded and signed-in passwords match. The current build still has 'DemoPass123!' in .next/static/chunks/app/login/page-*.js (login-form.tsx constant).",
+    "dev2: no change needed in scripts/ci-tenant-check.ts from dev1 (no new SECURITY DEFINER functions in 0004). Under A9 your 0005 definers insert follow-ups as (done false, due_on set, created_by auth.uid()), which passes the new follow_ups_insert policy."
+  ],
+  "fix_round": {
+    "date": "2026-11-16",
+    "summary": "G3-01: new supabase/seed/00_demo_reset.sql (first seed file) deletes every MDPL row whose id is not a seed id and the MDPL counters, so db:seed / db:seed:sql reset the story to day one; README + hosted guide corrected. G3-02 / SEC3-03: buyers list shows Plant no money fact, pill or money sort and does not read v_money_due. G3-03 (dev1 part): follow_ups SELECT hides entity_type 'payment' rows from operations, fn_follow_up_done answers not_found to operations for them, seed 02 'Balance $18,900 due' is now entity_type 'payment'.",
+    "items": [
+      {
+        "id": "G3-01",
+        "status": "fixed",
+        "evidence": "Scratch DB mahua_qc_dev1: seed from zero -> SEED STORY OK; rehearsal-commit.cjs -> INQ-0011 / SMP-0004 / QTN-2627-0005 / ORD-0004 / REC-2627-0005; re-seed -> SEED STORY OK, 10 inquiries / 3 orders / 4 payments / 8 pending follow-ups, counters BUY 4 INQ 10 SMP 3 ORD 3 QTN 4 PI 3 INV 2 SDN 2 REC 4; second rehearsal gives the same codes (INQ-0011 ...); re-seed OK again. DB dropped."
+      },
+      {
+        "id": "G3-02",
+        "status": "fixed",
+        "evidence": "buyers/page.tsx: isPlant = role 'operations' -> fact2 undefined, badge undefined, sort by name only; loadBuyerList(supabase, { withMoney: !isPlant }) skips v_money_due. typecheck 0, lint clean, next build OK."
+      },
+      {
+        "id": "SEC3-03",
+        "status": "fixed",
+        "evidence": "Same change as G3-02 (page + queries.ts withMoney); Plant's request no longer reads v_money_due."
+      },
+      {
+        "id": "G3-03",
+        "status": "fixed",
+        "evidence": "dev1 part only. dev1-plant-money.cjs on onion_crm: owner/accountant/sales read 1 payment follow-up and 'Balance $18,900 due' in v_followups_today; plant reads 0, to-do 4 rows with no money note, KPI followups_today 4, fn_follow_up_done on the balance reminder -> 42501 not_found. New test 'A6 / G3-03' in tests/inquiries.test.ts. dev3 part (0006 definers write advance/balance reminders as 'payment') not done by dev1."
+      }
+    ],
+    "files_changed": [
+      "supabase/seed/00_demo_reset.sql (new)",
+      "supabase/migrations/0004_inquiries_followups.sql",
+      "supabase/seed/02_inquiries.sql",
+      "scripts/seed.ts (comment)",
+      "README.md",
+      "docs/setup/hosted-supabase.md",
+      "src/app/(dashboard)/buyers/page.tsx",
+      "src/app/(dashboard)/buyers/queries.ts",
+      "tests/inquiries.test.ts",
+      "docs/qa/sprint-c/dev1-plant-money.cjs (new evidence)"
+    ],
+    "commands_run": [
+      "npm run db:seed:sql -> Seed completed (00-04 ok)",
+      "npm test -> 5 files, 112/112 (inquiries 27)",
+      "npm run typecheck -> exit 0",
+      "npm run lint -> No ESLint warnings or errors",
+      "npm run ci:tenant-check -> PASSED",
+      "npx next build -> exit 0",
+      "node docs/qa/sprint-c/dev1-seed-story.cjs -> SEED STORY OK 2/1/1/511875/18900/1/5",
+      "node docs/qa/sprint-c/dev1-plant-money.cjs -> PLANT MONEY CHECK OK"
+    ],
+    "all_checks_green": true,
+    "open_issues": [
+      "G3-03 needs dev3: 0006 definers (fn_quote_accept advance reminder ~l.342, fn_order_dispatch / fn_dispatch_delivered balance reminder ~l.591/673) still write entity_type 'order', so 'Advance ... due' / 'Balance $19,992 due' made during a demo stay visible to Plant; the advance mark-done at ~l.814 matches entity_type = 'order' only and must become IN ('order','payment'). Lead to confirm per the finding.",
+      "Sales has orders but not payments, so Home filters the 'payment' balance row out of the sales To-do list while v_home_kpis.followups_today (RLS count) still counts it (tile 5, list 4 for sales). Same pre-existing pattern as other module-filtered rows; lead to decide if sales should keep money reminders.",
+      "00_demo_reset.sql deletes live MDPL data by design; a test or script writing to the demo org while db:seed runs could lose rows (tests use their own orgs).",
+      "Design docs (lead): sample-data.md section 7 row cccc...01 says entity 'order'; contracts 8 does not list 00_demo_reset.sql."
+    ],
+    "notes_for_other_devs": [
+      "dev3: switch 0006 money reminders to entity_type 'payment' (entity_id = order id) and the advance mark-done filter to IN ('order','payment'); tests/orders-payments.test.ts l.446/509 query entity_type = 'order' for the balance reminder and would need the same change. Home and orders/[id] already handle 'payment'.",
+      "all: npm run db:seed:sql now deletes MDPL rows whose ids are not seed ids; keep new seed rows on the fixed id prefixes of contracts 8."
+    ]
+  }
+}

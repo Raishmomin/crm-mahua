@@ -1,0 +1,7 @@
+mahua_qc counts {"buyers":4,"inquiries":10,"samples":3,"quotations":4,"quotation_items":4,"orders":3,"order_items":3,"dispatches":2,"payments":4,"follow_ups":14,"follow_ups_pending":8,"follow_ups_notes":6,"audit_cost_rows":0,"audit_bank_snapshots":0}
+mahua_qc entity_code_counters BUY=4 INQ=10 ORD=3 SMP=3
+mahua_qc doc_counters INV/2627=2 PI/2627=3 QTN/2627=4 REC/2627=4 SDN/2627=2
+mahua_qc step_dates (days ago) ORD-0001 delivered {"confirmed":46,"delivered":38,"dispatched":40,"in_production":45,"ready":41}
+mahua_qc step_dates (days ago) ORD-0002 dispatched {"confirmed":27,"dispatched":6,"in_production":22,"ready":9}
+mahua_qc step_dates (days ago) ORD-0003 in_production {"confirmed":10,"in_production":2}
+mahua_qc next codes (rolled back) {"inq":"INQ-0011","smp":"SMP-0004","ord":"ORD-0004","buy":"BUY-0005","qtn":"QTN-2627-0005","pi":"PI-2627-0004","inv":"INV-2627-0003","sdn":"SDN-2627-0003","rec":"REC-2627-0005"}

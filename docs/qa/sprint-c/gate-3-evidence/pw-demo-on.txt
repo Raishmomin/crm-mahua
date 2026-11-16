@@ -1,0 +1,20 @@
+{"mode":"demo-on","lang":"en","status":200,"path":"/login","htmlLang":"en","title":"Mahuva CRM","h1":"Mahuva CRM","tryAsHeading":"present","tryAsButtons":[{"text":"Owner","h":72},{"text":"Accounts","h":72},{"text":"Sales","h":72},{"text":"Plant","h":72}],"langSegments":[{"text":"English","h":48,"w":148.4},{"text":"ગુજરાતી","h":48,"w":148.4}],"passwordIds":1,"formNoValidate":true,"bodyFontSize":"17px","bodyLineHeight":"25.5px","horizontalScroll":false,"rawKeys":[],"smallTargets":[],"faviconLinks":["/icon.svg?93c7f64c389e3b5b"]}
+screenshot login-en.png
+{"mode":"demo-on","lang":"en","F6_after_empty_submit":{"errorsUnderFields":["email-error: Please fill this","password-error: Please fill this"],"ariaInvalid":["email","password"],"url":"/login"}}
+screenshot login-en-required.png
+{"mode":"demo-on","lang":"en","tryAsOwnerWithoutSupabase":{"alert":["No internet. Try again.",""],"url":"/login"}}
+screenshot login-en-tryas-offline.png
+{"mode":"demo-on","lang":"en","notFound":{"status":404,"path":"/no-such-page","h1":"This page does not exist.","text":"This page does not exist. | Go Home","links":[{"text":"Go Home","href":"/","h":51}],"horizontalScroll":false,"rawKeys":[]}}
+screenshot not-found-en.png
+{"favicon":{"status":200,"type":"image/x-icon"}}
+{"mode":"demo-on","lang":"en","consoleErrors":["Failed to load resource: the server responded with a status of 404 (Not Found)"]}
+{"mode":"demo-on","lang":"gu","status":200,"path":"/login","htmlLang":"gu","title":"Mahuva CRM","h1":"Mahuva CRM","tryAsHeading":"absent","tryAsButtons":[{"text":"માલિક","h":72},{"text":"હિસાબ","h":72},{"text":"સેલ્સ","h":72},{"text":"પ્લાન્ટ","h":72}],"langSegments":[{"text":"English","h":48,"w":148.4},{"text":"ગુજરાતી","h":48,"w":148.4}],"passwordIds":1,"formNoValidate":true,"bodyFontSize":"17px","bodyLineHeight":"27.2px","horizontalScroll":false,"rawKeys":[],"smallTargets":[],"faviconLinks":["/icon.svg?93c7f64c389e3b5b"]}
+screenshot login-gu.png
+{"mode":"demo-on","lang":"gu","F6_after_empty_submit":{"errorsUnderFields":["email-error: આ ભરો","password-error: આ ભરો"],"ariaInvalid":["email","password"],"url":"/login"}}
+screenshot login-gu-required.png
+{"mode":"demo-on","lang":"gu","tryAsOwnerWithoutSupabase":{"alert":["ઇન્ટરનેટ નથી. ફરી કરો.",""],"url":"/login"}}
+screenshot login-gu-tryas-offline.png
+{"mode":"demo-on","lang":"gu","notFound":{"status":404,"path":"/no-such-page","h1":"આ પાનું નથી.","text":"આ પાનું નથી. | હોમ પર જાઓ","links":[{"text":"હોમ પર જાઓ","href":"/","h":51}],"horizontalScroll":false,"rawKeys":[]}}
+screenshot not-found-gu.png
+{"favicon":{"status":200,"type":"image/x-icon"}}
+{"mode":"demo-on","lang":"gu","consoleErrors":["Failed to load resource: the server responded with a status of 404 (Not Found)"]}

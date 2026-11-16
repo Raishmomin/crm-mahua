@@ -1,0 +1,214 @@
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.3 /home/raish/raish/mahua-crm
+
+ ❯ tests/quotes.test.ts  (29 tests | 10 failed) 1012ms
+   × 0005 samples and quotations > fix round: floor bypasses, cross-org parents, Plant on buyers, supplied codes > G2-01b / SEC2-01 B: changing a draft currency re-runs the guard; send re-derives a stale floor
+     → permission denied to set parameter "session_replication_role"
+   × 0005 samples and quotations > fix round: floor bypasses, cross-org parents, Plant on buyers, supplied codes > SEC2-01: fn_quote_update_draft saves header + items in one go, both ways, and a refusal changes nothing
+     → current transaction is aborted, commands ignored until end of transaction block
+   × 0005 samples and quotations > fix round: floor bypasses, cross-org parents, Plant on buyers, supplied codes > SEC2-01 C / G2-03: another org's product, packaging, buyer or inquiry is refused on samples, quotations and items
+     → current transaction is aborted, commands ignored until end of transaction block
+   × 0005 samples and quotations > fix round: floor bypasses, cross-org parents, Plant on buyers, supplied codes > G2-02 / SEC2-03: Plant holds the buyers module but cannot write buyers or contacts; sales can
+     → current transaction is aborted, commands ignored until end of transaction block
+   × 0005 samples and quotations > fix round: floor bypasses, cross-org parents, Plant on buyers, supplied codes > SEC2-02: a code a web session supplies is replaced, so the next number cannot be pre-claimed or forged
+     → current transaction is aborted, commands ignored until end of transaction block
+   × 0005 samples and quotations > Sprint C: A9 row starts, SEC2-06 same refusal, SEC2-07, G2-13 one call > A9 samples: INSERT starts as to_send, no result date, in the caller's name; DELETE only while to_send
+     → current transaction is aborted, commands ignored until end of transaction block
+   × 0005 samples and quotations > Sprint C: A9 row starts, SEC2-06 same refusal, SEC2-07, G2-13 one call > A9 quotations: INSERT is an unsent, undecided draft in the caller's name; supplied totals are replaced by the item sums
+     → current transaction is aborted, commands ignored until end of transaction block
+   × 0005 samples and quotations > Sprint C: A9 row starts, SEC2-06 same refusal, SEC2-07, G2-13 one call > G2-13: fn_sample_create saves, and with mark-sent sends, in one call; a refused mark-sent saves nothing
+     → current transaction is aborted, commands ignored until end of transaction block
+   × 0005 samples and quotations > Sprint C: A9 row starts, SEC2-06 same refusal, SEC2-07, G2-13 one call > SEC2-06: another org's id and a random id get the same refusal on samples, quotations and items, insert and update
+     → current transaction is aborted, commands ignored until end of transaction block
+   × 0005 samples and quotations > Sprint C: A9 row starts, SEC2-06 same refusal, SEC2-07, G2-13 one call > SEC2-07: a web session with no role (switched off) is not the owner: the item guard refuses it; trusted scripts still seed
+     → current transaction is aborted, commands ignored until end of transaction block
+ ✓ tests/orders-payments.test.ts  (28 tests) 1563ms
+ ✓ tests/inquiries.test.ts  (26 tests) 1037ms
+ ❯ tests/security-fixes.test.ts  (23 tests | 1 failed) 962ms
+   × 0003 security fixes: the database enforces the walls > Sprint C hardening: 0007 (A10, SEC1-03), actAs claims (SEC1-05), modules (SEC1-08) > A10: PUBLIC and anon execute no public function; definers pin search_path; web sessions keep the helpers and RPCs only
+     → SQLSTATE for "function public.gen_salt(unknown) does not exist": expected '42883' to be '42501' // Object.is equality
+ ✓ tests/rls-tenant-isolation.test.ts  (5 tests) 577ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/quotes.test.ts > 0005 samples and quotations
+error: current transaction is aborted, commands ignored until end of transaction block
+ ❯ node_modules/pg/lib/client.js:535:17
+ ❯ Module.resetRole tests/helpers/db.ts:64:3
+     62| /** Back to the connection role (postgres) with every session override…
+     63| export async function resetRole(client: Client): Promise<void> {
+     64|   await client.query('RESET ROLE');
+       |   ^
+     65|   await client.query(`
+     66|     SELECT set_config('request.jwt.claim.sub', '', false),
+ ❯ cleanup tests/quotes.test.ts:48:5
+ ❯ tests/quotes.test.ts:114:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/12]⎯
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/quotes.test.ts > 0005 samples and quotations > fix round: floor bypasses, cross-org parents, Plant on buyers, supplied codes > G2-01b / SEC2-01 B: changing a draft currency re-runs the guard; send re-derives a stale floor
+error: permission denied to set parameter "session_replication_role"
+ ❯ node_modules/pg/lib/client.js:535:17
+ ❯ tests/quotes.test.ts:466:7
+    464|       await resetRole(client);
+    465|       await client.query('BEGIN');
+    466|       await client.query(`SET LOCAL session_replication_role = replica…
+       |       ^
+    467|       await client.query(`UPDATE quotations SET currency = 'INR' WHERE…
+    468|       await client.query('COMMIT');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/12]⎯
+
+ FAIL  tests/quotes.test.ts > 0005 samples and quotations > fix round: floor bypasses, cross-org parents, Plant on buyers, supplied codes > SEC2-01: fn_quote_update_draft saves header + items in one go, both ways, and a refusal changes nothing
+error: current transaction is aborted, commands ignored until end of transaction block
+ ❯ node_modules/pg/lib/client.js:535:17
+ ❯ Module.actAs tests/helpers/db.ts:54:3
+     52|  */
+     53| export async function actAs(client: Client, userId: string): Promise<v…
+     54|   await client.query('SET ROLE authenticated');
+       |   ^
+     55|   await client.query(
+     56|     `SELECT set_config('request.jwt.claim.sub', $1, false),
+ ❯ draft tests/quotes.test.ts:422:7
+ ❯ tests/quotes.test.ts:490:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/12]⎯
+
+ FAIL  tests/quotes.test.ts > 0005 samples and quotations > fix round: floor bypasses, cross-org parents, Plant on buyers, supplied codes > SEC2-01 C / G2-03: another org's product, packaging, buyer or inquiry is refused on samples, quotations and items
+error: current transaction is aborted, commands ignored until end of transaction block
+ ❯ node_modules/pg/lib/client.js:535:17
+ ❯ Module.actAs tests/helpers/db.ts:54:3
+     52|  */
+     53| export async function actAs(client: Client, userId: string): Promise<v…
+     54|   await client.query('SET ROLE authenticated');
+       |   ^
+     55|   await client.query(
+     56|     `SELECT set_config('request.jwt.claim.sub', $1, false),
+ ❯ draft tests/quotes.test.ts:422:7
+ ❯ tests/quotes.test.ts:528:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/12]⎯
+
+ FAIL  tests/quotes.test.ts > 0005 samples and quotations > fix round: floor bypasses, cross-org parents, Plant on buyers, supplied codes > G2-02 / SEC2-03: Plant holds the buyers module but cannot write buyers or contacts; sales can
+error: current transaction is aborted, commands ignored until end of transaction block
+ ❯ node_modules/pg/lib/client.js:535:17
+ ❯ Module.resetRole tests/helpers/db.ts:64:3
+     62| /** Back to the connection role (postgres) with every session override…
+     63| export async function resetRole(client: Client): Promise<void> {
+     64|   await client.query('RESET ROLE');
+       |   ^
+     65|   await client.query(`
+     66|     SELECT set_config('request.jwt.claim.sub', '', false),
+ ❯ tests/quotes.test.ts:567:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/12]⎯
+
+ FAIL  tests/quotes.test.ts > 0005 samples and quotations > fix round: floor bypasses, cross-org parents, Plant on buyers, supplied codes > SEC2-02: a code a web session supplies is replaced, so the next number cannot be pre-claimed or forged
+error: current transaction is aborted, commands ignored until end of transaction block
+ ❯ node_modules/pg/lib/client.js:535:17
+ ❯ Module.resetRole tests/helpers/db.ts:64:3
+     62| /** Back to the connection role (postgres) with every session override…
+     63| export async function resetRole(client: Client): Promise<void> {
+     64|   await client.query('RESET ROLE');
+       |   ^
+     65|   await client.query(`
+     66|     SELECT set_config('request.jwt.claim.sub', '', false),
+ ❯ tests/quotes.test.ts:589:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/12]⎯
+
+ FAIL  tests/quotes.test.ts > 0005 samples and quotations > Sprint C: A9 row starts, SEC2-06 same refusal, SEC2-07, G2-13 one call > A9 samples: INSERT starts as to_send, no result date, in the caller's name; DELETE only while to_send
+error: current transaction is aborted, commands ignored until end of transaction block
+ ❯ node_modules/pg/lib/client.js:535:17
+ ❯ Module.actAs tests/helpers/db.ts:54:3
+     52|  */
+     53| export async function actAs(client: Client, userId: string): Promise<v…
+     54|   await client.query('SET ROLE authenticated');
+       |   ^
+     55|   await client.query(
+     56|     `SELECT set_config('request.jwt.claim.sub', $1, false),
+ ❯ tests/quotes.test.ts:635:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/12]⎯
+
+ FAIL  tests/quotes.test.ts > 0005 samples and quotations > Sprint C: A9 row starts, SEC2-06 same refusal, SEC2-07, G2-13 one call > A9 quotations: INSERT is an unsent, undecided draft in the caller's name; supplied totals are replaced by the item sums
+error: current transaction is aborted, commands ignored until end of transaction block
+ ❯ node_modules/pg/lib/client.js:535:17
+ ❯ Module.actAs tests/helpers/db.ts:54:3
+     52|  */
+     53| export async function actAs(client: Client, userId: string): Promise<v…
+     54|   await client.query('SET ROLE authenticated');
+       |   ^
+     55|   await client.query(
+     56|     `SELECT set_config('request.jwt.claim.sub', $1, false),
+ ❯ tests/quotes.test.ts:662:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/12]⎯
+
+ FAIL  tests/quotes.test.ts > 0005 samples and quotations > Sprint C: A9 row starts, SEC2-06 same refusal, SEC2-07, G2-13 one call > G2-13: fn_sample_create saves, and with mark-sent sends, in one call; a refused mark-sent saves nothing
+error: current transaction is aborted, commands ignored until end of transaction block
+ ❯ node_modules/pg/lib/client.js:535:17
+ ❯ Module.resetRole tests/helpers/db.ts:64:3
+     62| /** Back to the connection role (postgres) with every session override…
+     63| export async function resetRole(client: Client): Promise<void> {
+     64|   await client.query('RESET ROLE');
+       |   ^
+     65|   await client.query(`
+     66|     SELECT set_config('request.jwt.claim.sub', '', false),
+ ❯ tests/quotes.test.ts:690:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/12]⎯
+
+ FAIL  tests/quotes.test.ts > 0005 samples and quotations > Sprint C: A9 row starts, SEC2-06 same refusal, SEC2-07, G2-13 one call > SEC2-06: another org's id and a random id get the same refusal on samples, quotations and items, insert and update
+error: current transaction is aborted, commands ignored until end of transaction block
+ ❯ node_modules/pg/lib/client.js:535:17
+ ❯ Module.resetRole tests/helpers/db.ts:64:3
+     62| /** Back to the connection role (postgres) with every session override…
+     63| export async function resetRole(client: Client): Promise<void> {
+     64|   await client.query('RESET ROLE');
+       |   ^
+     65|   await client.query(`
+     66|     SELECT set_config('request.jwt.claim.sub', '', false),
+ ❯ tests/quotes.test.ts:755:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/12]⎯
+
+ FAIL  tests/quotes.test.ts > 0005 samples and quotations > Sprint C: A9 row starts, SEC2-06 same refusal, SEC2-07, G2-13 one call > SEC2-07: a web session with no role (switched off) is not the owner: the item guard refuses it; trusted scripts still seed
+error: current transaction is aborted, commands ignored until end of transaction block
+ ❯ node_modules/pg/lib/client.js:535:17
+ ❯ Module.resetRole tests/helpers/db.ts:64:3
+     62| /** Back to the connection role (postgres) with every session override…
+     63| export async function resetRole(client: Client): Promise<void> {
+     64|   await client.query('RESET ROLE');
+       |   ^
+     65|   await client.query(`
+     66|     SELECT set_config('request.jwt.claim.sub', '', false),
+ ❯ tests/quotes.test.ts:809:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/12]⎯
+
+ FAIL  tests/security-fixes.test.ts > 0003 security fixes: the database enforces the walls > Sprint C hardening: 0007 (A10, SEC1-03), actAs claims (SEC1-05), modules (SEC1-08) > A10: PUBLIC and anon execute no public function; definers pin search_path; web sessions keep the helpers and RPCs only
+AssertionError: SQLSTATE for "function public.gen_salt(unknown) does not exist": expected '42883' to be '42501' // Object.is equality
+
+Expected: "42501"
+Received: "42883"
+
+ ❯ Module.expectDbError tests/helpers/db.ts:102:61
+    100|   }
+    101|   if (code !== undefined) {
+    102|     expect(caught.code, `SQLSTATE for "${caught.message}"`).toBe(code);
+       |                                                             ^
+    103|   }
+    104|   if (typeof message === 'string') {
+ ❯ tests/security-fixes.test.ts:537:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/12]⎯
+
+ Test Files  2 failed | 3 passed (5)
+      Tests  11 failed | 100 passed (111)
+   Start at  14:06:47
+   Duration  8.83s (transform 605ms, setup 0ms, collect 1.42s, tests 5.15s, environment 2ms, prepare 669ms)
+

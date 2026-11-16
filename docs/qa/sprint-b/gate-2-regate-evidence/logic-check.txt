@@ -1,0 +1,66 @@
+price rows: 12; currencies in the list: INR, USD
+
+=== G2-01 (form): currency chips offer only priced currencies
+PASS chips for P-CHP-E
+      want false
+      got  false
+PASS chips for R-FLK-C
+      want false
+      got  false
+PASS chips for R-POW-S
+      want false
+      got  false
+PASS chips for W-FLK-A
+      want false
+      got  false
+PASS chips for W-MIN-A
+      want false
+      got  false
+PASS chips for W-POW-P
+      want false
+      got  false
+PASS Rhine preferred_currency (seed)
+      want "EUR"
+      got  "EUR"
+PASS Rhine quote default currency with W-MIN-A (was EUR)
+      want "USD"
+      got  "USD"
+PASS Rhine chips with W-MIN-A
+      want ["INR","USD"]
+      got  ["INR","USD"]
+
+=== G2-04: export vs India agree in quotes and orders
+PASS Al-Barakah Spice & Grain LLC (export_importer, United Arab Emirates) quotes == orders
+      want true
+      got  true
+PASS Everest Food Products Pvt Ltd (domestic_masala, India) quotes == orders
+      want false
+      got  false
+PASS Haldiram Snacks Private Limited (domestic_food_mfr, India) quotes == orders
+      want false
+      got  false
+PASS Rhine Food Ingredients GmbH (export_agent, Germany) quotes == orders
+      want true
+      got  true
+PASS export_importer + country "" -> orders export
+      want true
+      got  true
+PASS export_importer + country "" -> quotes export
+      want true
+      got  true
+
+=== G2-04: Save as buyer prefills India / Export and the country from the phone
+PASS +971 50 123 4567
+      want {"isExport":true,"country":"United Arab Emirates"}
+      got  {"isExport":true,"country":"United Arab Emirates"}
+PASS +91 98200 45678
+      want {"isExport":false,"country":"India"}
+      got  {"isExport":false,"country":"India"}
+PASS +49 40 3298 1234
+      want {"isExport":true,"country":"Germany"}
+      got  {"isExport":true,"country":"Germany"}
+PASS +92 300 1234567 (not in the map: Export, country asked)
+      want {"isExport":true,"country":""}
+      got  {"isExport":true,"country":""}
+
+19 pass, 0 fail

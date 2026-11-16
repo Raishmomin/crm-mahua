@@ -1,0 +1,8 @@
+# direct POST to the Try-as server action (Next-Action 879e389ade46d68698096255660888e51be82597, build jcde49UhxBffmn0S-cDQP), no browser, 2026-11-16 17:28:09
+port 3140 body [{"role":"owner"}] -> 0:["$@1",["jcde49UhxBffmn0S-cDQP",null]] 1:{"ok":false,"messageKey":"msg.error.offline"} 
+port 3140 body [{"role":"superadmin"}] -> 0:["$@1",["jcde49UhxBffmn0S-cDQP",null]] 1:{"ok":false,"messageKey":"msg.err.bad_payload"} 
+port 3141 body [{"role":"owner"}] -> 0:["$@1",["jcde49UhxBffmn0S-cDQP",null]] 1:{"ok":false,"messageKey":"msg.access_denied_title"} 
+port 3141 body [{"role":"superadmin"}] -> 0:["$@1",["jcde49UhxBffmn0S-cDQP",null]] 1:{"ok":false,"messageKey":"msg.access_denied_title"} 
+port 3142 body [{"role":"owner"}] -> 0:["$@1",["jcde49UhxBffmn0S-cDQP",null]] 1:{"ok":false,"messageKey":"msg.access_denied_title"} 
+port 3142 body [{"role":"superadmin"}] -> 0:["$@1",["jcde49UhxBffmn0S-cDQP",null]] 1:{"ok":false,"messageKey":"msg.access_denied_title"} 
+(3140 DEMO_MODE=true from .env.local; 3141 DEMO_MODE=false; 3142 DEMO_MODE='')

@@ -1,0 +1,63 @@
+{
+  "verdict": "pass",
+  "summary": "SEC3-03 is fixed: on /buyers Plant (operations) gets no money amount, no money pill and no overdue sort, and the page no longer reads v_money_due for Plant. Proved by code read and by replaying loadBuyerList SQL as owner, accountant, sales and operations. ci:tenant-check and npm test (112/112) pass. No new blocker or high finding. SEC3-01, SEC3-02 and SEC3-04 (minor) and SEC3-05/06/07 (info) were not routed to this round and remain open.",
+  "checks_run": [
+    {
+      "check": "node docs/qa/sprint-c/security-regate-evidence/sec3-03-recheck.cjs (static + SQL as 4 roles)",
+      "result": "pass",
+      "output_tail": "PASS plant cards: no amount, no pill (no '₹0 · Paid')\nPASS owner still sees the late buyer: Al-Barakah Spice & Grain LLC $18,900 overdue\nPASS accountant still sees the overdue pill\nSEC3-03 RECHECK OK"
+    },
+    {
+      "check": "npm run ci:tenant-check",
+      "result": "pass",
+      "output_tail": "CI Tenant Check PASSED ... exit=0"
+    },
+    {
+      "check": "npm test",
+      "result": "pass",
+      "output_tail": "Test Files 5 passed (5) Tests 112 passed (112) exit=0"
+    },
+    {
+      "check": "npx tsc --noEmit",
+      "result": "pass",
+      "output_tail": "exit=0"
+    },
+    {
+      "check": "node docs/qa/sprint-c/dev1-plant-money.cjs",
+      "result": "pass",
+      "output_tail": "plant: payment follow_ups=0, to-do rows=4, money to-do rows=none, kpi followups_today=4, tick balance reminder: 42501 not_found\nPLANT MONEY CHECK OK"
+    },
+    {
+      "check": "node docs/qa/sprint-c/security-regate-evidence/plant-blind-update.cjs",
+      "result": "pass",
+      "output_tail": "plant UPDATE with WHERE id: 0 rows\nplant UPDATE without WHERE: 5 rows\nbalance reminder due_on before=2026-11-09 after=2026-11-09 (rolled back)"
+    }
+  ],
+  "findings": [
+    {
+      "id": "SEC3-03",
+      "severity": "major",
+      "owner": "dev1",
+      "co_owners": [],
+      "file_ref": "src/app/(dashboard)/buyers/page.tsx:40,43,58,128-141; src/app/(dashboard)/buyers/queries.ts:42",
+      "problem": "FIXED. Was: Plant saw every buyer as ₹0 · Paid because v_money_due is empty for operations. Now Plant cards have no amount and no pill, the sort is by name only, and v_money_due is not queried for Plant. SQL replay: Plant 4 buyers, 0 v_money_due rows, no money on any card; owner/accountant/sales still see Al-Barakah $18,900 overdue.",
+      "fix": "None needed. Status: fixed."
+    }
+  ],
+  "blocked_waiting_for_credentials": [
+    "Live Plant browser session on /buyers (no working web login); proved by code, SQL replay and typecheck instead.",
+    "SEC3-04 matters once hosted Supabase users are created: seed-users.ts still falls back to DemoPass123!."
+  ],
+  "usability_notes": [
+    "Plant buyers list now shows name, place and Call/WhatsApp only, which keeps the screen simple."
+  ],
+  "report_path": "/home/raish/raish/mahua-crm/docs/security/sign-off-regate.md",
+  "other_items_not_in_round": {
+    "SEC3-01": "open (minor)",
+    "SEC3-02": "open (minor)",
+    "SEC3-04": "open (minor)",
+    "SEC3-05": "open (info)",
+    "SEC3-06": "partly addressed by G3-03 (info)",
+    "SEC3-07": "open (info)"
+  }
+}

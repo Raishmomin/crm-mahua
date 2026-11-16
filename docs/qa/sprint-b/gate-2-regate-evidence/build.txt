@@ -1,0 +1,64 @@
+  ▲ Next.js 14.2.20
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/21) ...
+   Generating static pages (5/21) 
+   Generating static pages (10/21) 
+   Generating static pages (15/21) 
+ ✓ Generating static pages (21/21)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+┌ ƒ /                                    5.64 kB         121 kB
+├ ƒ /_not-found                          147 B          87.4 kB
+├ ƒ /access-denied                       181 B          94.2 kB
+├ ƒ /account-inactive                    2.34 kB         146 kB
+├ ƒ /buyers                              153 B           120 kB
+├ ƒ /buyers/[id]                         3.14 kB         124 kB
+├ ƒ /buyers/[id]/edit                    1.14 kB         123 kB
+├ ƒ /buyers/new                          196 B           122 kB
+├ ƒ /catalog                             9.71 kB         123 kB
+├ ƒ /inquiries                           152 B           120 kB
+├ ƒ /inquiries/[id]                      6.51 kB         128 kB
+├ ƒ /inquiries/[id]/edit                 1.14 kB         124 kB
+├ ƒ /inquiries/new                       197 B           123 kB
+├ ƒ /login                               5.19 kB         149 kB
+├ ƒ /orders                              3.99 kB         124 kB
+├ ƒ /orders/[id]                         6.63 kB         132 kB
+├ ƒ /orders/[id]/checklist               11.9 kB         125 kB
+├ ƒ /orders/[id]/dispatch                6.37 kB         123 kB
+├ ƒ /orders/[id]/print                   147 B          87.4 kB
+├ ƒ /orders/[id]/print/[doc]             2.99 kB         116 kB
+├ ƒ /payments                            4.27 kB         127 kB
+├ ƒ /payments/new                        12.2 kB         129 kB
+├ ƒ /quotes                              9.46 kB         123 kB
+├ ƒ /quotes/[id]                         10.3 kB         126 kB
+├ ƒ /quotes/[id]/accept                  7 kB            120 kB
+├ ƒ /quotes/[id]/edit                    197 B           125 kB
+├ ƒ /quotes/[id]/print                   2.99 kB         116 kB
+├ ƒ /quotes/new                          206 B           125 kB
+├ ƒ /samples                             209 B           125 kB
+├ ƒ /samples/[id]                        201 B           125 kB
+├ ƒ /samples/new                         3.33 kB         120 kB
+├ ƒ /settings                            6.5 kB          120 kB
+└ ƒ /users                               9.61 kB         123 kB
++ First Load JS shared by all            87.2 kB
+  ├ chunks/2117-38a738dc0bbe24cd.js      31.6 kB
+  ├ chunks/fd9d1056-536025d70f9574bf.js  53.6 kB
+  └ other shared chunks (total)          1.99 kB
+
+
+ƒ Middleware                             56.7 kB
+
+ƒ  (Dynamic)  server-rendered on demand
+
+
+real	0m52.074s
+user	1m3.949s
+sys	0m5.265s
+build exit 0

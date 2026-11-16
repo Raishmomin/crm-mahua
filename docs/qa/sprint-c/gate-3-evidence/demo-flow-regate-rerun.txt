@@ -1,0 +1,572 @@
+=== Baseline (seeded story)
+  KPIS before: {"new_inquiries":2,"quotes_waiting":1,"orders_in_production":1,"money_due_inr":"511875.00","money_due_usd":"18900.00","money_due_about_inr":"2104200.00","money_overdue_count":1,"followups_today":5,"papers_pending":1}
+
+=== 0:55 Sales creates inquiry for Al-Barakah
+PASS [sales] insert inquiry (6 fields)
+      expect ok
+      got    OK rows=1 {"id":"b9baeda0-a01e-486d-9ad8-f2f438bf2846","code":"INQ-0011","status":"new"}
+  -> INQ-0011 (expect INQ-0011)
+  KPIS after inquiry (new_inquiries +1): {"new_inquiries":3,"quotes_waiting":1,"orders_in_production":1,"money_due_inr":"511875.00","money_due_usd":"18900.00","money_due_about_inr":"2104200.00","money_overdue_count":1,"followups_today":5,"papers_pending":1}
+PASS [sales] Reply on WhatsApp -> talking
+      expect ok
+      got    OK rows=1 {"fn_inquiry_set_status":""}
+
+=== 1:25 Sales sends sample
+PASS [sales] insert sample 500 g DHL
+      expect ok
+      got    OK rows=1 {"id":"ee63af34-6bba-4c76-803f-e7b22fadda0e","code":"SMP-0004","status":"to_send"}
+  -> SMP-0004 (expect SMP-0004)
+PASS [sales] fn_sample_set_status sent
+      expect ok
+      got    OK rows=1 {"fn_sample_set_status":""}
+  inquiry + sample + follow-up (1):
+     {"inquiry_status":"sample_sent","sample_status":"sent","sent_on":"2026-11-15T18:30:00.000Z","note":"Sample SMP-0004 sent, ask for result","due_on":"2026-11-22T18:30:00.000Z","due_in_days":7,"has_buyer":true}
+
+=== 1:50 Sales makes quote (floor guard)
+PASS [sales] insert USD quote FOB Pipavav valid 10 days
+      expect ok
+      got    OK rows=1 {"id":"27dd1ca3-db4a-4e7e-b5e8-beaf6240c203","quote_no":"QTN-2627-0005","status":"draft"}
+  -> QTN-2627-0005 (expect QTN-2627-0005)
+PASS [sales] item at $2,100/MT as sales (below floor 2180)
+      expect {"code":"P0001","message":"below_floor_price"}
+      got    ERROR P0001 below_floor_price [2180.00]
+PASS [owner] item at $2,100/MT as owner (allowed, try-only)
+      expect ok
+      got    OK rows=1 {"amount":"25200.00","floor_price_at_time":"2180.00","gst_rate":"0.00"}
+PASS [sales] item at $2,380/MT as sales
+      expect ok
+      got    OK rows=1 {"amount":"28560.00","floor_price_at_time":"2180.00","gst_rate":"0.00"}
+  quote totals (1):
+     {"quote_no":"QTN-2627-0005","status":"draft","subtotal":"28560.00","gst_amount":"0.00","total":"28560.00"}
+
+=== 2:20 Sales shares quote -> mark sent
+PASS [sales] fn_quote_send
+      expect ok
+      got    OK rows=1 {"fn_quote_send":""}
+  quote + inquiry + follow-up (1):
+     {"status":"sent","sent":true,"inquiry_status":"quoted","note":"Quote QTN-2627-0005 expires tomorrow - call buyer","due_in_days":9}
+  KPIS after quote sent (quotes_waiting 2): {"new_inquiries":2,"quotes_waiting":2,"orders_in_production":1,"money_due_inr":"511875.00","money_due_usd":"18900.00","money_due_about_inr":"2104200.00","money_overdue_count":1,"followups_today":5,"papers_pending":1}
+PASS [sales] sales UPDATE sent quote rate via items (0 rows: policy)
+      expect {"rows":0}
+      got    OK rows=0
+PASS [sales] sales UPDATE sent quote header (0 rows: policy)
+      expect {"rows":0}
+      got    OK rows=0
+
+=== 2:30 Owner: Buyer accepted -> order + PI
+PASS [owner] fn_quote_accept advance 101 -> bad_payload
+      expect {"code":"P0001","message":"bad_payload"}
+      got    ERROR P0001 bad_payload [advance_pct]
+PASS [owner] fn_quote_accept(ship_by +21, 30)
+      expect ok
+      got    OK rows=1 {"order_id":"65dcf070-b395-4188-b56a-5b1ec5a06761"}
+  order (1):
+     {"order_code":"ORD-0004","pi_no":"PI-2627-0004","status":"confirmed","currency":"USD","total":"28560.00","advance_expected":"8568.00","ship_in_days":21,"incoterm":"FOB Pipavav","payment_terms":"30% advance, 70% against BL copy"}
+  order items (1):
+     {"qty_kg":"12000.00","unit":"MT","rate":"2380.00","amount":"28560.00","gst_rate":"0.00"}
+  quote / inquiry / follow-ups after accept (1):
+     {"quote":"accepted","inquiry":"won","inquiry_closed":true,"quote_fu_pending":"0","order_fu":[{"note":"Advance $8,568 due - check bank","due_in":3}]}
+PASS [owner] accept again -> invalid_transition
+      expect {"code":"P0001","message":"invalid_transition"}
+      got    ERROR P0001 invalid_transition [accepted -> accepted]
+  KPIS after accept (quotes_waiting 1, orders_in_production 2, usd due +28560): {"new_inquiries":2,"quotes_waiting":1,"orders_in_production":2,"money_due_inr":"511875.00","money_due_usd":"47460.00","money_due_about_inr":"4510380.00","money_overdue_count":1,"followups_today":5,"papers_pending":1}
+
+=== 3:05 Accountant records advance $8,568
+PASS [accountant] USD payment without amount_inr -> bad_payload
+      expect {"code":"P0001","message":"bad_payload"}
+      got    ERROR P0001 bad_payload [amount_inr]
+PASS [accountant] fn_payment_record 8568 USD, 721854 INR @84.25
+      expect ok
+      got    OK rows=1 {"id":"6f79b629-a6f6-4c37-a737-00949685f719"}
+  payment row (1):
+     {"receipt_no":"REC-2627-0005","amount":"8568.00","currency":"USD","amount_inr":"721854.00","fx_rate":"84.2500","mode":"bank"}
+  v_order_balances ORD-0004 (1):
+     {"order_code":"ORD-0004","total":"28560.00","received":"8568.00","due":"19992.00","advance_ok":true,"due_date":null,"money_status":"due"}
+  advance follow-up after payment (1):
+     {"note":"Advance $8,568 due - check bank","done":true}
+
+=== 3:45 Plant packs, loads (container)
+PASS [ops(Plant)] ops fn_order_set_packed while confirmed -> invalid_transition
+      expect {"code":"P0001","message":"invalid_transition"}
+      got    ERROR P0001 invalid_transition [confirmed -> ready]
+PASS [ops(Plant)] ops fn_order_dispatch while confirmed -> invalid_transition
+      expect {"code":"P0001","message":"invalid_transition"}
+      got    ERROR P0001 invalid_transition [confirmed -> dispatched]
+PASS [ops(Plant)] ops Packing started -> in_production
+      expect ok
+      got    OK rows=1 {"fn_order_set_status":""}
+PASS [ops(Plant)] ops Packed 0 bags -> bad_payload
+      expect {"code":"P0001","message":"bad_payload"}
+      got    ERROR P0001 bad_payload [packed_bags]
+PASS [ops(Plant)] ops Packed 480 bags -> ready
+      expect ok
+      got    OK rows=1 {"fn_order_set_packed":""}
+PASS [ops(Plant)] ops backwards ready -> in_production -> invalid_transition
+      expect {"code":"P0001","message":"invalid_transition"}
+      got    ERROR P0001 invalid_transition [ready -> in_production]
+PASS [ops(Plant)] ops backwards ready -> confirmed -> invalid_transition
+      expect {"code":"P0001","message":"invalid_transition"}
+      got    ERROR P0001 invalid_transition [ready -> confirmed]
+PASS [ops(Plant)] ops set dispatched directly -> invalid_transition
+      expect {"code":"P0001","message":"invalid_transition"}
+      got    ERROR P0001 invalid_transition [ready -> dispatched]
+PASS [ops(Plant)] container without port -> bad_payload
+      expect {"code":"P0001","message":"bad_payload"}
+      got    ERROR P0001 bad_payload [port]
+PASS [ops(Plant)] truck without vehicle -> bad_payload
+      expect {"code":"P0001","message":"bad_payload"}
+      got    ERROR P0001 bad_payload [vehicle_no]
+PASS [ops(Plant)] qty above order -> bad_payload
+      expect {"code":"P0001","message":"bad_payload"}
+      got    ERROR P0001 bad_payload [qty_kg]
+PASS [ops(Plant)] ops Loaded: fn_order_dispatch container
+      expect ok
+      got    OK rows=1 {"id":"eaa20ebc-4829-4d14-840e-4d7aa01c008e"}
+  dispatch row (1):
+     {"invoice_no":"INV-2627-0003","sdn_no":"SDN-2627-0003","mode":"container","container_no":"MSKU 111222-3","port":"Pipavav","bags_count":480,"qty_kg":"12000.00","invoice_total":"28560.00","stuffing_eq_dispatch":true,"done_n":"2","keys":"8"}
+  order after dispatch (1):
+     {"order_code":"ORD-0004","status":"dispatched","packed_bags":480,"dispatched_kg":"12000.00"}
+  balance follow-up (2):
+     {"note":"Advance $8,568 due - check bank","due_in_days":3,"done":true}
+     {"note":"Balance $19,992 due","due_in_days":0,"done":false}
+PASS [ops(Plant)] second dispatch on dispatched order -> invalid_transition
+      expect {"code":"P0001","message":"invalid_transition"}
+      got    ERROR P0001 invalid_transition [dispatched -> dispatched]
+
+=== Export checklist ticks
+PASS [ops(Plant)] ops tick coa (allowed)
+      expect ok
+      got    OK rows=1 {"fn_dispatch_tick":""}
+PASS [ops(Plant)] ops tick phyto -> role_not_allowed 42501
+      expect {"code":"42501","message":"role_not_allowed"}
+      got    ERROR 42501 role_not_allowed
+PASS [sales] sales untick coa -> role_not_allowed 42501
+      expect {"code":"42501","message":"role_not_allowed"}
+      got    ERROR 42501 role_not_allowed
+PASS [accountant] accountant tick container_booked
+      expect ok
+      got    OK rows=1 {"fn_dispatch_tick":""}
+PASS [accountant] accountant tick bl_received without BL -> bl_required
+      expect {"code":"P0001","message":"bl_required"}
+      got    ERROR P0001 bl_required
+PASS [accountant] accountant tick bl_received with BL
+      expect ok
+      got    OK rows=1 {"fn_dispatch_tick":""}
+PASS [accountant] accountant tick unknown key -> bad_payload
+      expect {"code":"P0001","message":"bad_payload"}
+      got    ERROR P0001 bad_payload [key]
+PASS [accountant] accountant tick on truck dispatch -> bad_payload
+      expect {"code":"P0001","message":"bad_payload"}
+      got    ERROR P0001 bad_payload [mode]
+  checklist after ticks (1):
+     {"bl_no":"MEDUQA0001","done_n":"5","coa":{"date":"2026-11-16","done":true},"booked":{"date":"2026-11-15","done":true}}
+PASS [accountant] 4:10 accountant ticks COO on ORD-0002 -> 8 of 8
+      expect ok
+      got    OK rows=1 {"fn_dispatch_tick":""}
+
+=== 4:30 Owner reads Home views
+  KPIS after flow: {"new_inquiries":2,"quotes_waiting":1,"orders_in_production":1,"money_due_inr":"511875.00","money_due_usd":"38892.00","money_due_about_inr":"3788526.00","money_overdue_count":1,"followups_today":7,"papers_pending":1}
+  v_followups_today (owner) (7):
+     {"entity_type":"order","note":"Balance $18,900 due","days_late":6,"buyer_name":"Al-Barakah Spice & Grain LLC"}
+     {"entity_type":"inquiry","note":"Send flakes sample (250 g) for soup mix - Sunita","days_late":2,"buyer_name":"Everest Food Products Pvt Ltd"}
+     {"entity_type":"quote","note":"Quote QTN-2627-0003 expires tomorrow - call Hans","days_late":0,"buyer_name":"Rhine Food Ingredients GmbH"}
+     {"entity_type":"inquiry","note":"Sample SMP-0002 sent, ask Tariq for result","days_late":0,"buyer_name":"Al-Barakah Spice & Grain LLC"}
+     {"entity_type":"buyer","note":"Re-quote red flakes - crop price down, Manish asked","days_late":0,"buyer_name":"Haldiram Snacks Private Limited"}
+     {"entity_type":"order","note":"BL received - send copy and ask for balance","days_late":0,"buyer_name":"Al-Barakah Spice & Grain LLC"}
+     {"entity_type":"order","note":"Balance $19,992 due","days_late":0,"buyer_name":"Al-Barakah Spice & Grain LLC"}
+  v_money_due (owner) (2):
+     {"buyer_name":"Al-Barakah Spice & Grain LLC","currency":"USD","total_due":"38892.00","orders_due":2,"max_days_overdue":6,"money_status":"overdue"}
+     {"buyer_name":"Haldiram Snacks Private Limited","currency":"INR","total_due":"511875.00","orders_due":1,"max_days_overdue":0,"money_status":"due"}
+  v_orders_in_production (owner) (1):
+     {"order_code":"ORD-0003","status":"in_production","planned_bags":200,"packed_bags":null}
+  v_orders_in_production (ops) (1):
+     {"order_code":"ORD-0003","buyer_name":"Haldiram Snacks Private Limited","status":"in_production","planned_bags":200,"packed_bags":null}
+PASS [owner] 4:38 owner Done on Everest row (fn_follow_up_done)
+      expect ok
+      got    OK rows=1 {"fn_follow_up_done":""}
+PASS [owner] fn_follow_up_done again (no-op)
+      expect ok
+      got    OK rows=1 {"fn_follow_up_done":""}
+  KPIS after Done: {"new_inquiries":2,"quotes_waiting":1,"orders_in_production":1,"money_due_inr":"511875.00","money_due_usd":"38892.00","money_due_about_inr":"3788526.00","money_overdue_count":1,"followups_today":6,"papers_pending":1}
+  DELTA new_inq 0, quotes_waiting 0, in_prod 0, usd_due 19992, followups_today 2 then -1, papers_pending 0
+
+=== Delivered / balance paid
+PASS [ops(Plant)] ops fn_dispatch_delivered -> role_not_allowed
+      expect {"code":"42501","message":"role_not_allowed"}
+      got    ERROR 42501 role_not_allowed
+PASS [accountant] accountant fn_dispatch_delivered
+      expect ok
+      got    OK rows=1 {"fn_dispatch_delivered":""}
+PASS [accountant] delivered twice -> invalid_transition
+      expect {"code":"P0001","message":"invalid_transition"}
+      got    ERROR P0001 invalid_transition [delivered -> delivered]
+PASS [accountant] balance $19,992 paid
+      expect ok
+      got    OK rows=1 {"fn_payment_record":"3a7eb7d3-e7e2-461f-a55a-6ae934cdef9e"}
+  ORD-0004 money + open follow-ups (1):
+     {"order_status":"delivered","due":"0.00","money_status":"paid","open_fu":"0"}
+
+=== Negative: wrong role / missing module (42501)
+PASS [accountant] accountant (no leads) fn_inquiry_set_status
+      expect {"code":"42501"}
+      got    ERROR 42501 Access denied: module leads is required
+PASS [ops(Plant)] ops (no leads) insert inquiry
+      expect {"code":"42501"}
+      got    ERROR 42501 new row violates row-level security policy for table "inquiries"
+PASS [sales] sales lost -> talking (Reopen) -> role_not_allowed
+      expect {"code":"42501","message":"role_not_allowed"}
+      got    ERROR 42501 role_not_allowed
+PASS [sales] sales set won directly -> invalid_transition
+      expect {"code":"P0001","message":"invalid_transition"}
+      got    ERROR P0001 invalid_transition [talking -> won]
+PASS [sales] sales won -> talking (backwards) -> invalid_transition
+      expect {"code":"P0001","message":"invalid_transition"}
+      got    ERROR P0001 invalid_transition [won -> talking]
+PASS [sales] sales lost without reason -> reason_required
+      expect {"code":"P0001","message":"reason_required"}
+      got    ERROR P0001 reason_required
+PASS [accountant] accountant (no leads) fn_follow_up_done on inquiry row
+      expect {"code":"42501"}
+      got    ERROR 42501 Access denied: module leads is required
+PASS [accountant] accountant (no samples) fn_sample_set_status
+      expect {"code":"42501"}
+      got    ERROR 42501 Access denied: module samples is required
+PASS [sales] sales approved -> sent (backwards) -> invalid_transition
+      expect {"code":"P0001","message":"invalid_transition"}
+      got    ERROR P0001 invalid_transition [approved -> sent]
+PASS [ops(Plant)] ops (no quotes) fn_quote_send
+      expect {"code":"42501"}
+      got    ERROR 42501 Access denied: module quotes is required
+PASS [ops(Plant)] ops (no quotes) fn_quote_reject
+      expect {"code":"42501"}
+      got    ERROR 42501 Access denied: module quotes is required
+PASS [ops(Plant)] ops (no quotes) fn_quote_accept
+      expect {"code":"42501"}
+      got    ERROR 42501 Access denied: module quotes is required
+PASS [sales] sales cancel order -> role_not_allowed
+      expect {"code":"42501","message":"role_not_allowed"}
+      got    ERROR 42501 role_not_allowed
+PASS [sales] sales (no payments) fn_payment_record
+      expect {"code":"42501"}
+      got    ERROR 42501 Access denied: module payments is required
+PASS [ops(Plant)] ops (no payments) fn_payment_record
+      expect {"code":"42501"}
+      got    ERROR 42501 Access denied: module payments is required
+PASS [sales] sales without orders module: fn_order_set_status
+      expect {"code":"42501"}
+      got    ERROR 42501 Access denied: module orders is required
+PASS [sales] sales without orders module: fn_order_set_packed
+      expect {"code":"42501"}
+      got    ERROR 42501 Access denied: module orders is required
+PASS [sales] sales without orders module: fn_order_dispatch
+      expect {"code":"42501"}
+      got    ERROR 42501 Access denied: module orders is required
+PASS [sales] sales without orders module: fn_dispatch_tick
+      expect {"code":"42501"}
+      got    ERROR 42501 Access denied: module orders is required
+PASS [sales] sales without orders module: fn_dispatch_delivered
+      expect {"code":"42501"}
+      got    ERROR 42501 Access denied: module orders is required
+
+=== Negative: direct writes on function-only tables
+PASS [sales] sales INSERT payments
+      expect {"code":"42501"}
+      got    ERROR 42501 permission denied for table payments
+PASS [accountant] accountant INSERT payments
+      expect {"code":"42501"}
+      got    ERROR 42501 permission denied for table payments
+PASS [owner] owner INSERT orders
+      expect {"code":"42501"}
+      got    ERROR 42501 permission denied for table orders
+PASS [ops(Plant)] ops UPDATE orders status
+      expect {"code":"42501"}
+      got    ERROR 42501 permission denied for table orders
+PASS [ops(Plant)] ops UPDATE dispatches checklist
+      expect {"code":"42501"}
+      got    ERROR 42501 permission denied for table dispatches
+PASS [accountant] accountant DELETE payments
+      expect {"code":"42501"}
+      got    ERROR 42501 permission denied for table payments
+PASS [owner] owner INSERT order_items
+      expect {"code":"42501"}
+      got    ERROR 42501 permission denied for table order_items
+PASS [sales] sales UPDATE follow_ups done=true (column lock)
+      expect {"code":"42501"}
+      got    ERROR 42501 permission denied for table follow_ups
+PASS [sales] sales UPDATE inquiries status (column lock)
+      expect {"code":"42501"}
+      got    ERROR 42501 permission denied for table inquiries
+PASS [sales] sales INSERT quotation as sent (policy)
+      expect {"code":"42501"}
+      got    ERROR 42501 new row violates row-level security policy for table "quotations"
+PASS [sales] sales call fn_next_code (locked)
+      expect {"code":"42501"}
+      got    ERROR 42501 permission denied for function fn_next_code
+
+=== Negative: accept expired / rejected / accepted / draft quotes
+PASS [owner] accept sent quote past valid_till -> quote_expired
+      expect {"code":"P0001","message":"quote_expired"}
+      got    ERROR P0001 quote_expired [2026-11-15]
+  KPIS QTN-0003 past valid_till (quotes_waiting excludes it): {"new_inquiries":2,"quotes_waiting":0,"orders_in_production":1,"money_due_inr":"511875.00","money_due_usd":"18900.00","money_due_about_inr":"2104200.00","money_overdue_count":1,"followups_today":4,"papers_pending":1}
+PASS [owner] accept rejected QTN-0002 -> invalid_transition
+      expect {"code":"P0001","message":"invalid_transition"}
+      got    ERROR P0001 invalid_transition [rejected -> accepted]
+PASS [owner] accept accepted QTN-0001 -> invalid_transition
+      expect {"code":"P0001","message":"invalid_transition"}
+      got    ERROR P0001 invalid_transition [accepted -> accepted]
+PASS [owner] accept draft QTN-0004 -> invalid_transition
+      expect {"code":"P0001","message":"invalid_transition"}
+      got    ERROR P0001 invalid_transition [draft -> accepted]
+PASS [sales] reject without reason -> reason_required
+      expect {"code":"P0001","message":"reason_required"}
+      got    ERROR P0001 reason_required
+
+=== Negative: owner cancel (try-only)
+PASS [owner] owner cancel ORD-0003 (in_production)
+      expect ok
+      got    OK rows=1 {"fn_order_set_status":""}
+  KPIS ORD-0003 cancelled (INR due drops 511875, in_prod -1): {"new_inquiries":2,"quotes_waiting":1,"orders_in_production":0,"money_due_inr":"0.00","money_due_usd":"18900.00","money_due_about_inr":"1592325.00","money_overdue_count":1,"followups_today":4,"papers_pending":1}
+PASS [accountant] payment on cancelled order -> invalid_transition
+      expect {"code":"P0001","message":"invalid_transition"}
+      got    ERROR P0001 invalid_transition [cancelled]
+PASS [owner] cancelled -> in_production -> invalid_transition
+      expect {"code":"P0001","message":"invalid_transition"}
+      got    ERROR P0001 invalid_transition [cancelled -> in_production]
+
+=== Negative: cross-org (other org owner, ids of MDPL rows)
+PASS [ownerX(other org)] X fn_quote_accept(MDPL QTN-0003)
+      expect {"code":"42501","message":"not_found"}
+      got    ERROR 42501 not_found
+PASS [ownerX(other org)] X fn_quote_send(MDPL QTN-0004)
+      expect {"code":"42501","message":"not_found"}
+      got    ERROR 42501 not_found
+PASS [ownerX(other org)] X fn_quote_reject(MDPL QTN-0003)
+      expect {"code":"42501","message":"not_found"}
+      got    ERROR 42501 not_found
+PASS [ownerX(other org)] X fn_inquiry_set_status(MDPL INQ-0007)
+      expect {"code":"42501","message":"not_found"}
+      got    ERROR 42501 not_found
+PASS [ownerX(other org)] X fn_sample_set_status(MDPL SMP-0002)
+      expect {"code":"42501","message":"not_found"}
+      got    ERROR 42501 not_found
+PASS [ownerX(other org)] X fn_follow_up_done(MDPL follow-up)
+      expect {"code":"42501","message":"not_found"}
+      got    ERROR 42501 not_found
+PASS [ownerX(other org)] X fn_order_set_status(MDPL ORD-0003)
+      expect {"code":"42501","message":"not_found"}
+      got    ERROR 42501 not_found
+PASS [ownerX(other org)] X fn_order_set_packed(MDPL ORD-0003)
+      expect {"code":"42501","message":"not_found"}
+      got    ERROR 42501 not_found
+PASS [ownerX(other org)] X fn_order_dispatch(MDPL ORD-0003)
+      expect {"code":"42501","message":"not_found"}
+      got    ERROR 42501 not_found
+PASS [ownerX(other org)] X fn_dispatch_tick(MDPL dispatch)
+      expect {"code":"42501","message":"not_found"}
+      got    ERROR 42501 not_found
+PASS [ownerX(other org)] X fn_dispatch_delivered(MDPL dispatch)
+      expect {"code":"42501","message":"not_found"}
+      got    ERROR 42501 not_found
+PASS [ownerX(other org)] X fn_payment_record(MDPL ORD-0002)
+      expect {"code":"42501","message":"not_found"}
+      got    ERROR 42501 not_found
+  X sees MDPL rows (all should be 0) (1):
+     {"orders":"0","payments":"0","dispatches":"0","balances":"0","money_due":"0","todo":"0","inquiries":"0","quotes":"0"}
+  X v_home_kpis (own org only, zeros) (1):
+     {"org_id":"f9f9f9f9-f9f9-4f9f-8f9f-f9f9f9f9f9f9","new_inquiries":0,"quotes_waiting":0,"orders_in_production":0,"money_due_inr":"0.00","money_due_usd":"0.00","followups_today":0}
+PASS [ownerX(other org)] X UPDATE MDPL buyer (0 rows)
+      expect {"rows":0}
+      got    OK rows=0
+
+=== G2-03 re-gate: a row may only point at parents of its own org (expected REFUSED)
+PASS [sales] G2-03 sales INSERT sample with other-org buyer_id
+      expect {"code":"42501"}
+      got    ERROR 42501 new row violates row-level security policy for table "samples"
+PASS [sales] G2-03 sales INSERT sample with other-org product_id
+      expect {"code":"42501"}
+      got    ERROR 42501 new row violates row-level security policy for table "samples"
+PASS [sales] G2-03 sales INSERT sample with other-org inquiry_id
+      expect {"code":"42501"}
+      got    ERROR 42501 new row violates row-level security policy for table "samples"
+PASS [sales] G2-03 sales UPDATE SMP-0002 buyer_id -> other org
+      expect {"code":"42501"}
+      got    ERROR 42501 new row violates row-level security policy for table "samples"
+PASS [sales] G2-03 sales INSERT quotation with other-org buyer_id
+      expect {"code":"42501"}
+      got    ERROR 42501 new row violates row-level security policy for table "quotations"
+PASS [sales] G2-03 sales INSERT quotation with other-org inquiry_id
+      expect {"code":"42501"}
+      got    ERROR 42501 new row violates row-level security policy for table "quotations"
+PASS [sales] G2-03 sales UPDATE draft QTN-0004 buyer_id -> other org
+      expect {"code":"42501"}
+      got    ERROR 42501 new row violates row-level security policy for table "quotations"
+PASS [sales] G2-03 sales INSERT quote item with other-org product_id (no floor there)
+      expect {}
+      got    ERROR P0001 bad_payload [product_id]
+PASS [sales] G2-03 sales INSERT quote item with other-org packaging_type_id
+      expect {"code":"42501"}
+      got    ERROR 42501 new row violates row-level security policy for table "quotation_items"
+PASS [sales] G2-03 sales INSERT quote item into the other org's draft quote
+      expect {}
+      got    ERROR 42501 not_found
+PASS [sales] G2-03 sales INSERT inquiry with other-org buyer_id
+      expect {"code":"42501"}
+      got    ERROR 42501 new row violates row-level security policy for table "inquiries"
+PASS [sales] G2-03 sales INSERT inquiry with other-org product_id
+      expect {"code":"42501"}
+      got    ERROR 42501 new row violates row-level security policy for table "inquiries"
+PASS [sales] G2-03 sales INSERT inquiry assigned_to other-org user
+      expect {"code":"42501"}
+      got    ERROR 42501 new row violates row-level security policy for table "inquiries"
+PASS [sales] G2-03 sales UPDATE INQ-0007 product_id -> other org
+      expect {"code":"42501"}
+      got    ERROR 42501 new row violates row-level security policy for table "inquiries"
+PASS [sales] G2-03 sales INSERT follow-up with other-org buyer_id
+      expect {"code":"42501"}
+      got    ERROR 42501 new row violates row-level security policy for table "follow_ups"
+PASS [sales] G2-03 sales INSERT buyer_contact for other-org buyer
+      expect {"code":"42501"}
+      got    ERROR 42501 new row violates row-level security policy for table "buyer_contacts"
+PASS [owner] G2-03 owner INSERT price_list_items for other-org product
+      expect {"code":"42501"}
+      got    ERROR 42501 new row violates row-level security policy for table "price_list_items"
+PASS [sales] G2-03 control: sales INSERT sample with own buyer + product (allowed)
+      expect ok
+      got    OK rows=1 {"code":"SMP-0005"}
+
+=== G2-01 re-gate (a): a currency with no price row (EUR) is no way around the floor
+PASS [sales] G2-01a sales EUR quote header for Rhine (header alone is allowed)
+      expect ok
+      got    OK rows=1 {"id":"473fc10e-c245-4065-b115-31d533a243e7","quote_no":"QTN-2627-0006"}
+PASS [sales] G2-01a sales EUR item W-MIN-A at 1 per MT
+      expect {"code":"P0001","message":"below_floor_price","detail":"no_price"}
+      got    ERROR P0001 below_floor_price [no_price]
+PASS [sales] G2-01a sales EUR item W-MIN-A at 99,999 per MT (still no known floor)
+      expect {"code":"P0001","message":"below_floor_price","detail":"no_price"}
+      got    ERROR P0001 below_floor_price [no_price]
+PASS [sales] G2-01a sales fn_quote_send EUR quote with no items
+      expect {"code":"P0001","message":"no_items"}
+      got    ERROR P0001 no_items
+PASS [owner] G2-01a owner EUR item at 1 per MT (owner override, kept)
+      expect ok
+      got    OK rows=1 {"amount":"12.00","floor_price_at_time":null,"gst_rate":"0.00"}
+PASS [sales] G2-01a sales fn_quote_send of the owner-priced EUR quote
+      expect {"code":"P0001","message":"below_floor_price","detail":"no_price"}
+      got    ERROR P0001 below_floor_price [no_price]
+PASS [sales] G2-01a sales fn_quote_accept on the EUR draft
+      expect {"code":"P0001","message":"invalid_transition"}
+      got    ERROR P0001 invalid_transition [draft -> accepted]
+PASS [owner] G2-01a owner fn_quote_send (owner override, by design)
+      expect ok
+      got    OK rows=1 {"fn_quote_send":""}
+
+=== G2-01 re-gate (b): a draft's currency change and a raised floor are re-checked
+PASS [sales] G2-01b sales USD quote for Al-Barakah
+      expect ok
+      got    OK rows=1 {"id":"a4a4f895-b9b9-4a2d-bcc1-e947235b15b7","quote_no":"QTN-2627-0006"}
+PASS [sales] G2-01b sales USD item 2380/MT
+      expect ok
+      got    OK rows=1 {"amount":"28560.00","floor_price_at_time":"2180.00","gst_rate":"0.00"}
+PASS [sales] G2-01b sales UPDATE draft currency USD -> INR (Rs 2.38/kg vs floor Rs 175/kg)
+      expect {"code":"P0001","message":"below_floor_price"}
+      got    ERROR P0001 below_floor_price [175000.00]
+PASS [sales] G2-01b sales UPDATE draft currency USD -> EUR (no price row)
+      expect {"code":"P0001","message":"below_floor_price","detail":"no_price"}
+      got    ERROR P0001 below_floor_price [no_price]
+  G2-01b draft after the two refused switches (expect USD, floor 2180, total 28560) (1):
+     {"quote_no":"QTN-2627-0006","status":"draft","currency":"USD","fx_rate":"84.2500","total":"28560.00","unit":"MT","rate":"2380.00","floor_price_at_time":"2180.00","gst_rate":"0.00"}
+PASS [sales] G2-01b sales fn_quote_update_draft USD -> INR keeping 2380 per MT
+      expect {"code":"P0001","message":"below_floor_price"}
+      got    ERROR P0001 below_floor_price [175000.00]
+  G2-01b draft after the refused RPC (expect unchanged: USD, 1 item, floor 2180) (1):
+     {"currency":"USD","fx_rate":"84.2500","total":"28560.00","items":"1","floor":"2180.00"}
+PASS [sales] G2-01b sales fn_quote_update_draft USD -> INR at Rs 190/kg (valid)
+      expect ok
+      got    OK rows=1 {"quote_no":"QTN-2627-0006"}
+  G2-01b draft in INR (expect floor 175, gst 5, subtotal 2280000, gst 114000) (1):
+     {"currency":"INR","fx_rate":null,"subtotal":"2280000.00","gst_amount":"114000.00","total":"2394000.00","unit":"kg","rate":"190.00","floor_price_at_time":"175.00","gst_rate":"5.00"}
+PASS [sales] G2-01b sales fn_quote_update_draft back to USD at 2380 per MT (valid)
+      expect ok
+      got    OK rows=1 {"quote_no":"QTN-2627-0006"}
+PASS [owner] G2-01b owner raises the USD price of W-MIN-A to 2600/MT, floor 2500/MT
+      expect ok
+      got    OK rows=1 {"floor_price":"2500.00"}
+PASS [sales] G2-01b sales fn_quote_send after the floor was raised (stored floor 2180 is stale)
+      expect {"code":"P0001","message":"below_floor_price","detail":"2500.00"}
+      got    ERROR P0001 below_floor_price [2500.00]
+PASS [owner] G2-01b owner fn_quote_send (owner override, by design)
+      expect ok
+      got    OK rows=1 {"fn_quote_send":""}
+PASS [sales] G2-01b sales INSERT a EUR price row with floor 1 (catalog is owner/accountant)
+      expect {"code":"42501"}
+      got    ERROR 42501 new row violates row-level security policy for table "price_list_items"
+PASS [sales] G2-01b sales UPDATE price_list_items floor to 1 (0 rows)
+      expect {"rows":0}
+      got    OK rows=0
+
+=== G2-02 re-gate: Plant reads buyers but cannot write them
+PASS [ops(Plant)] G2-02 ops SELECT buyers (read still works)
+      expect ok
+      got    OK rows=1 {"n":4}
+PASS [ops(Plant)] G2-02 ops UPDATE buyer credit days to 90
+      expect {"rows":0}
+      got    OK rows=0
+PASS [ops(Plant)] G2-02 ops INSERT buyer
+      expect {"code":"42501"}
+      got    ERROR 42501 new row violates row-level security policy for table "buyers"
+PASS [ops(Plant)] G2-02 ops DELETE buyer
+      expect {"rows":0}
+      got    OK rows=0
+PASS [ops(Plant)] G2-02 ops UPDATE buyer_contacts phone
+      expect {"rows":0}
+      got    OK rows=0
+PASS [ops(Plant)] G2-02 ops INSERT buyer_contact
+      expect {"code":"42501"}
+      got    ERROR 42501 new row violates row-level security policy for table "buyer_contacts"
+PASS [ops(Plant)] G2-02 ops DELETE buyer_contacts
+      expect {"rows":0}
+      got    OK rows=0
+PASS [sales] G2-02 control: sales UPDATE buyer credit days (allowed)
+      expect {"rows":1}
+      got    OK rows=1
+PASS [accountant] G2-02 control: accountant UPDATE buyer credit days (allowed)
+      expect {"rows":1}
+      got    OK rows=1
+PASS [ops(Plant)] G2-02 observation: ops INSERT a note on a buyer (dev1 open issue, flows.md silent)
+      expect ok
+      got    OK rows=1 {"id":"7f42bb9e-4afc-4ad4-a54f-427a09040716"}
+
+=== G2-04 re-gate: "Add one inquiry yourself" with + New buyer, then Save as buyer
+  buyers before (1):
+     {"n":4}
+PASS [sales] G2-04 sales INSERT inquiry with name + phone only (no buyer row)
+      expect ok
+      got    OK rows=1 {"id":"3e109e89-6108-48a6-a0f2-3995dd3a6a0b","code":"INQ-0012","buyer_id":null}
+  buyers after the inquiry (expect unchanged) (1):
+     {"n":4}
+  buyers 4 -> 4 (no buyer row made)
+PASS [sales] G2-04 sales sample for a buyer-less inquiry (needs Save as buyer first)
+      expect {}
+      got    ERROR 42501 new row violates row-level security policy for table "samples"
+PASS [sales] G2-04 Save as buyer: sales INSERT export buyer with country
+      expect ok
+      got    OK rows=1 {"id":"eef64e77-d7fd-4d61-aaa4-375bde6489d8","buyer_code":"BUY-0005","country":"United Arab Emirates"}
+PASS [sales] G2-04 Save as buyer: primary contact
+      expect ok
+      got    OK rows=1
+PASS [sales] G2-04 Save as buyer: link the inquiry
+      expect {"rows":1}
+      got    OK rows=1
+PASS [sales] G2-04 sales sample for the inquiry now that it has a buyer
+      expect ok
+      got    OK rows=1 {"code":"SMP-0005"}
+
+=== G2-05 (not in this fix round; expected still open)
+PASS [sales] G2-05 sales DELETE order follow-up "Balance $18,900 due"
+      expect {"rows":0}
+      got    OK rows=0
+PASS [sales] G2-05 sales DELETE approved sample SMP-0001
+      expect {"rows":0}
+      got    OK rows=0
+
+ROLLED BACK. 152 pass, 0 fail

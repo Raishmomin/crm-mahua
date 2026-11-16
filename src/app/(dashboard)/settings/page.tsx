@@ -1,33 +1,29 @@
 import React from 'react';
 import { requireModule } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
-import { BusinessSettings } from '@/types/database';
-import { LABELS } from '@/lib/labels';
+import { getLang } from '@/lib/i18n-server';
+import { t } from '@/lib/i18n';
+import type { BusinessSettings } from '@/types/database';
+import { PageHeader } from '@/components/ui/back-button';
+import { ErrorState } from '@/components/ui/state-views';
 import { SettingsForm } from './settings-form';
 
 export default async function SettingsPage() {
-  // Wall 2: Server-side check
-  const currentProfile = await requireModule('settings');
+  const profile = await requireModule('settings'); // Wall 2
+  const lang = getLang();
 
   const supabase = createClient();
-  const { data: business } = await supabase
+  const { data, error } = await supabase
     .from('business_settings')
     .select('*')
-    .eq('org_id', currentProfile.org_id)
+    .eq('org_id', profile.org_id)
     .maybeSingle();
+  if (error) console.error('[settings] load failed:', error.code, error.message);
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight text-slate-900">
-          {LABELS.settings.title}
-        </h1>
-        <p className="text-xs text-slate-500 mt-1">
-          {LABELS.settings.subtitle}
-        </p>
-      </div>
-
-      <SettingsForm initialData={business as BusinessSettings | null} />
+    <div className="space-y-4 pb-28 md:pb-0">
+      <PageHeader title={t(lang, 'title.company')} />
+      {error ? <ErrorState retryHref="/settings" lang={lang} /> : <SettingsForm initialData={data as BusinessSettings | null} />}
     </div>
   );
 }

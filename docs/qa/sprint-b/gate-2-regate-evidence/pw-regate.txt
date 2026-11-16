@@ -1,0 +1,8 @@
+{"lang":"en","path":"/buyers/new?from_inquiry=66666666-6666-4666-8666-666666666610","status":200,"finalUrl":"/login","h1":"Mahuva CRM","htmlLang":"en","horizontalScroll":false,"rawKeys":[]}
+{"lang":"en","path":"/quotes/new?inquiry=66666666-6666-4666-8666-666666666610","status":200,"finalUrl":"/login","h1":"Mahuva CRM","htmlLang":"en","horizontalScroll":false,"rawKeys":[]}
+{"lang":"en","path":"/inquiries/new","status":200,"finalUrl":"/login","h1":"Mahuva CRM","htmlLang":"en","horizontalScroll":false,"rawKeys":[]}
+{"lang":"en","consoleErrors":["Failed to load resource: the server responded with a status of 404 (Not Found)"]}
+{"lang":"gu","path":"/buyers/new?from_inquiry=66666666-6666-4666-8666-666666666610","status":200,"finalUrl":"/login","h1":"Mahuva CRM","htmlLang":"gu","horizontalScroll":false,"rawKeys":[]}
+{"lang":"gu","path":"/quotes/new?inquiry=66666666-6666-4666-8666-666666666610","status":200,"finalUrl":"/login","h1":"Mahuva CRM","htmlLang":"gu","horizontalScroll":false,"rawKeys":[]}
+{"lang":"gu","path":"/inquiries/new","status":200,"finalUrl":"/login","h1":"Mahuva CRM","htmlLang":"gu","horizontalScroll":false,"rawKeys":[]}
+{"lang":"gu","consoleErrors":[]}

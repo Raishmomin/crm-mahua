@@ -1,0 +1,8 @@
+
+> mahua-crm@1.0.0 ci:tenant-check
+> tsx scripts/ci-tenant-check.ts
+
+CI tenant check against postgresql://postgres:****@127.0.0.1:5432/onion_crm
+
+✅ CI Tenant Check PASSED: every public table has org_id, an index, ENABLE + FORCE RLS and an org policy; every view is security_invoker; web roles hold no TRUNCATE / REFERENCES / TRIGGER; all SECURITY DEFINER functions are allowlisted and pin search_path; number generators and trigger functions are locked; PUBLIC / anon execute no function; every function a policy, view or app RPC needs is executable by authenticated; new functions are granted to nobody by default.
+

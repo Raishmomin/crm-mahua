@@ -1,0 +1,26 @@
+# Plain Postgres for local development, CI and Vitest (no Supabase stack).
+# Start:  docker compose up -d
+# Note: the sibling project's container onion-crm-postgres already uses host port 5432.
+#       If you need both at once run:  PG_PORT=5433 docker compose up -d
+#       and set DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5433/onion_crm in .env.local.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: mahua-crm-postgres
+    restart: unless-stopped
+    ports:
+      - "${PG_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: onion_crm
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - mahua_crm_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d onion_crm"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  mahua_crm_pgdata:

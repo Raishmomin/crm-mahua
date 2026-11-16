@@ -1,0 +1,39 @@
+{
+  "verdict": "pass",
+  "summary": "QA Gate 3 re-gate PASS. G3-01 (high), G3-02 (major) and G3-03 (major) are fixed and re-proved by QA; no new blocker or high. typecheck 0, lint clean, npm test 112/112, ci:tenant-check PASSED, next build OK, demo-flow replay 224/0 (rolled back), SEED STORY OK on onion_crm before and after. Remaining before the demo: minor G3-04/05/06 (not in this round), lead doc updates, security sign-off, and credentials day (hosted Supabase + signed-in screens, still blocked).",
+  "findings_rechecked": [
+    {
+      "id": "G3-01",
+      "severity": "high",
+      "owner": "dev1",
+      "status": "fixed",
+      "evidence": "g3-01-reset.txt: rehearsal -> re-seed -> SEED STORY OK, counts/counters back to seed, next INQ-0011/SMP-0004/ORD-0004/QTN-2627-0005/REC-2627-0005; rehearsals #2 and #4 repeat those codes; break rehearsal (new buyer + order, seeded quote accepted, seeded order paid/packed, seeded inquiry lost) fully undone; whole-org fingerprint identical to reference and to a from-zero seed (only random settings ids differ)."
+    },
+    {
+      "id": "G3-02",
+      "severity": "major",
+      "owner": "dev1",
+      "status": "fixed",
+      "evidence": "buyers/page.tsx isPlant hides fact2, money badge and money sort; loadBuyerList withMoney:false skips v_money_due; typecheck/lint/build pass. Signed-in render blocked (no Supabase)."
+    },
+    {
+      "id": "G3-03",
+      "severity": "major",
+      "owner": "dev3",
+      "co_owners": [
+        "dev1"
+      ],
+      "status": "fixed",
+      "evidence": "g3-03-plant-money.txt 26 pass 0 fail: Advance / Balance / BL-received reminders written as entity payment; Plant Home To do and Plant API read show 0 money reminders at every demo step; Plant tick -> 42501 not_found, UPDATE -> permission denied; owner/accountant still see them; advance mark-done still works."
+    }
+  ],
+  "not_in_round": {
+    "G3-04": "open",
+    "G3-05": "open",
+    "G3-06": "open",
+    "G3-07": "not reproduced (.next/cache 0 hits)"
+  },
+  "new_findings": [],
+  "report_md": "docs/qa/gate-3-regate.md",
+  "evidence_dir": "docs/qa/sprint-c/gate-3-regate-evidence/"
+}

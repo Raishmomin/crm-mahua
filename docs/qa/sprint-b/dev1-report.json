@@ -1,0 +1,209 @@
+{
+  "id": "dev1",
+  "summary": "Sprint B Dev-1 (Inquiries + Buyers + Follow-ups) complete. Resumed from interruption: migration 0004, seed 02, types, tests and all screens already existed and passed; the missing /buyers/[id]/edit page was added, and the 'save buyer first' flow from an inquiry now continues with &buyer=<new id> (contracts 6.3). All validation commands green.",
+  "files_changed": [
+    "supabase/migrations/0004_inquiries_followups.sql",
+    "supabase/seed/02_inquiries.sql",
+    "src/app/(dashboard)/inquiries/actions.ts",
+    "src/app/(dashboard)/inquiries/queries.ts",
+    "src/app/(dashboard)/inquiries/labels.ts",
+    "src/app/(dashboard)/inquiries/page.tsx",
+    "src/app/(dashboard)/inquiries/loading.tsx",
+    "src/app/(dashboard)/inquiries/error.tsx",
+    "src/app/(dashboard)/inquiries/new/page.tsx",
+    "src/app/(dashboard)/inquiries/[id]/page.tsx",
+    "src/app/(dashboard)/inquiries/[id]/edit/page.tsx",
+    "src/app/(dashboard)/buyers/actions.ts",
+    "src/app/(dashboard)/buyers/queries.ts",
+    "src/app/(dashboard)/buyers/labels.ts",
+    "src/app/(dashboard)/buyers/page.tsx",
+    "src/app/(dashboard)/buyers/loading.tsx",
+    "src/app/(dashboard)/buyers/error.tsx",
+    "src/app/(dashboard)/buyers/new/page.tsx",
+    "src/app/(dashboard)/buyers/[id]/page.tsx",
+    "src/app/(dashboard)/buyers/[id]/edit/page.tsx",
+    "src/components/inquiries/helpers.ts",
+    "src/components/inquiries/inquiry-form.tsx",
+    "src/components/inquiries/inquiry-actions.tsx",
+    "src/components/buyers/buyer-form.tsx",
+    "src/components/followups/note-sheet.tsx",
+    "src/components/followups/notes-section.tsx",
+    "src/types/inquiries.ts",
+    "src/types/buyers.ts",
+    "tests/inquiries.test.ts",
+    "tasks/todo.md",
+    "docs/qa/sprint-b/dev1-report.json"
+  ],
+  "commands_run": [
+    {
+      "cmd": "npm run db:seed:sql",
+      "exit_code": 0,
+      "output_tail": "ok 0000-0005 migrations; ok seed 01_core, 02_inquiries, 03_samples_quotes; Seed completed."
+    },
+    {
+      "cmd": "tsx counts script (postgres + actAs owner)",
+      "exit_code": 0,
+      "output_tail": "inquiries: lost 1, new 2, quoted 1, sample_sent 1, talking 2, won 3; follow_ups pending 8, notes 6; INQ counter 10; v_followups_today (owner) 5 rows: 6 late, 2 late, 3 today; v_inquiries_open 6"
+    },
+    {
+      "cmd": "npm run typecheck",
+      "exit_code": 0,
+      "output_tail": "tsc --noEmit (no errors)"
+    },
+    {
+      "cmd": "npm run lint",
+      "exit_code": 0,
+      "output_tail": "No ESLint warnings or errors"
+    },
+    {
+      "cmd": "npx vitest run tests/inquiries.test.ts",
+      "exit_code": 0,
+      "output_tail": "tests/inquiries.test.ts (15 tests) passed"
+    },
+    {
+      "cmd": "npm test",
+      "exit_code": 0,
+      "output_tail": "Test Files 4 passed (4); Tests 54 passed (54)"
+    },
+    {
+      "cmd": "npm run ci:tenant-check",
+      "exit_code": 0,
+      "output_tail": "CI Tenant Check PASSED"
+    },
+    {
+      "cmd": "npx next build",
+      "exit_code": 0,
+      "output_tail": "Compiled successfully; 17/17 pages; routes /inquiries, /inquiries/new, /inquiries/[id], /inquiries/[id]/edit, /buyers, /buyers/new, /buyers/[id], /buyers/[id]/edit all dynamic"
+    },
+    {
+      "cmd": "npx next dev -p 3111 + curl (unauthenticated)",
+      "exit_code": 0,
+      "output_tail": "/inquiries, /inquiries/new, /inquiries/[id], /inquiries/[id]/edit, /buyers, /buyers/new, /buyers/[id], /buyers/[id]/edit -> 307 /login; /login -> 200; no errors in dev log; server stopped"
+    }
+  ],
+  "all_checks_green": true,
+  "contract_deviations": [
+    "0004 adds trg_buyers_code (BEFORE INSERT on buyers, fn_assign_code('BUY','buyer_code')): buyers are inserted by policy from /buyers/new and the inquiry '+ New buyer' shortcut, and fn_next_code is not callable by authenticated (screens.md 8 says fn_next_code('BUY')).",
+    "v_followups_today exposes one extra column created_at (superset of the contract list and of Home's FollowupTodayRow).",
+    "0004 adds fn_follow_up_module(text) (IMMUTABLE SQL, not SECURITY DEFINER) used by the follow_ups policies and fn_follow_up_done instead of repeating the CASE.",
+    "fn_inquiry_set_status raises bad_payload (P0001) for an unknown status code before the not_found check.",
+    "Buyer detail 'see all inquiries' links to /inquiries?q=<company name> (contracts 6.1 route has ?status=&q=, no ?buyer=)."
+  ],
+  "open_issues": [
+    "sample-data.md section 7 lists To-do order 01, 02, 03, 04, 05, but its created_at values (03 = T-7, 04 = T-9) with the contract's ORDER BY due_on, created_at give 01, 02, 04, 03, 05. Designer doc inconsistency; view follows the contract.",
+    "Web login cannot be verified (no Supabase stack / hosted credentials): authenticated screen rendering is proven only by typecheck, next build and unauthenticated redirects.",
+    "Buyer money pill and buyer-detail Money / Orders blocks read v_money_due / v_order_balances / orders defensively; they show 0 / empty until Dev-3's 0006 lands."
+  ],
+  "notes_for_qa": [
+    "After npm run db:seed:sql: Inquiries 'All' chip = 6 open; chip New = INQ-0010 Gulf Star (today), INQ-0009 Shree Ambica (1 day).",
+    "v_followups_today as owner = 5 rows (2 late, 3 today); notes (due_on NULL, done true) never appear.",
+    "Inquiry INQ-0009 / INQ-0010 have no buyer: 'Send sample' / 'Make quote' opens the buyer-needed sheet -> /buyers/new?from_inquiry=<id>&next=...&buyer={id}; after save the inquiry gets buyer_id and the flow continues with ?inquiry=<id>&buyer=<new id>.",
+    "Reply on WhatsApp on a New inquiry moves it to Talking; the first note on a New inquiry does the same.",
+    "Mark lost needs one of 4 reason chips; Reopen is shown only to the owner.",
+    "Plant (ops) sees /buyers read-only: no New buyer button, /buyers/new and /buyers/[id]/edit redirect away, no money card / quotes block."
+  ],
+  "notes_for_other_devs": [
+    "dev3: v_money_due / v_order_balances / orders / dispatches are read by buyers/queries.ts with a missing-object guard; columns used: v_money_due(buyer_id, currency, total_due, money_status, max_days_overdue, oldest_due_date), v_order_balances(order_id, order_code, buyer_id, due, due_date, days_overdue), orders(id, order_code, status, total, currency, buyer_id, inquiry_id), dispatches(order_id, invoice_no, dispatched_on). Please keep these names.",
+    "dev3: v_followups_today has an extra created_at column; FollowupTodayRow in src/types/home.ts can stay as is.",
+    "dev3 (labels merge after Sprint B): module-local keys in src/app/(dashboard)/inquiries/labels.ts (inquiries.*) and buyers/labels.ts (buyers.*).",
+    "dev2: from an inquiry without a buyer, /samples/new and /quotes/new are reached with ?inquiry=<id>&buyer=<id> after the buyer is saved; inquiries.buyer_id is already set by then."
+  ],
+  "fix_round": {
+    "date": "2026-11-16",
+    "summary": "Fixed G2-02, G2-03 (inquiries + follow_ups), G2-04 (dev1 part), SEC2-02 (0004 part), SEC2-03 (actions) and SEC2-04. 0004: inquiries insert/update policies require buyer_id / product_id / assigned_to of the caller's org, follow_ups require buyer_id of the caller's org; buyers UPDATE narrowed to editable columns (buyer_code, id, org_id, created_at locked). Buyer actions refuse Plant via canWriteBuyers (owner / accountant / sales, same as dev2's 0003 policy). Inquiry '+ New buyer' now follows screens.md 5 (name + phone on the inquiry, no buyer row); 'Save as buyer' starts Export with the country from the calling code and requires a country. ?next= on /buyers/new goes through safeInternalPath on the page and again in BuyerForm before router.push.",
+    "findings": {
+      "G2-02": "fixed (dev1 part): createBuyerAction / updateBuyerAction return msg.access_denied_title for operations; dev2's 0003 policy landed; test: ops UPDATE buyers / buyer_contacts = 0 rows, INSERT = 42501",
+      "G2-03": "fixed (dev1 part): inquiries + follow_ups WITH CHECK sub-selects; test: foreign buyer / product / user refused on insert and update",
+      "G2-04": "fixed (dev1 part): follows screens.md 5, no buyer row from the inquiry form; country from calling code in the buyer form; dev3 owns isExportCountry",
+      "SEC2-02": "fixed (dev1 part): REVOKE UPDATE ON buyers + column GRANT; test: buyer_code / org_id / created_at UPDATE = 42501, supplied BUY / INQ code replaced and the next insert succeeds",
+      "SEC2-03": "fixed (dev1 part): role gate in both buyer actions; the inquiry shortcut no longer writes buyers at all",
+      "SEC2-04": "fixed: safeInternalPath (URL parse against a fixed origin, reject other origins and // paths) in buyers/new/page.tsx and buyer-form.tsx"
+    },
+    "files_changed": [
+      "supabase/migrations/0004_inquiries_followups.sql",
+      "src/types/buyers.ts",
+      "src/components/buyers/helpers.ts (new)",
+      "src/components/buyers/buyer-form.tsx",
+      "src/app/(dashboard)/buyers/actions.ts",
+      "src/app/(dashboard)/buyers/page.tsx",
+      "src/app/(dashboard)/buyers/new/page.tsx",
+      "src/app/(dashboard)/buyers/[id]/page.tsx",
+      "src/app/(dashboard)/buyers/[id]/edit/page.tsx",
+      "src/app/(dashboard)/inquiries/actions.ts",
+      "src/app/(dashboard)/inquiries/new/page.tsx",
+      "src/app/(dashboard)/inquiries/[id]/page.tsx",
+      "src/app/(dashboard)/inquiries/[id]/edit/page.tsx",
+      "src/components/inquiries/inquiry-form.tsx",
+      "tests/inquiries.test.ts",
+      "tasks/todo.md",
+      "docs/qa/sprint-b/dev1-report.json"
+    ],
+    "commands_run": [
+      {
+        "cmd": "npm run db:seed:sql",
+        "exit_code": 0,
+        "output_tail": "7 migrations ok, 4 seeds ok, Seed completed."
+      },
+      {
+        "cmd": "npx vitest run tests/inquiries.test.ts",
+        "exit_code": 0,
+        "output_tail": "Tests 23 passed (23)"
+      },
+      {
+        "cmd": "npm test",
+        "exit_code": 0,
+        "output_tail": "Test Files 5 passed (5); Tests 91 passed (91)"
+      },
+      {
+        "cmd": "npm run lint",
+        "exit_code": 0,
+        "output_tail": "No ESLint warnings or errors"
+      },
+      {
+        "cmd": "npm run ci:tenant-check",
+        "exit_code": 0,
+        "output_tail": "CI Tenant Check PASSED"
+      },
+      {
+        "cmd": "npm run typecheck",
+        "exit_code": 1,
+        "output_tail": "7 x TS2802 in docs/qa/sprint-b/gate-2-evidence/labelcheck.ts (QA file); 0 errors in src/ and tests/"
+      },
+      {
+        "cmd": "npx next build (repo)",
+        "exit_code": 1,
+        "output_tail": "Type error in ./docs/qa/sprint-b/gate-2-evidence/labelcheck.ts:52:44 (TS2802)"
+      },
+      {
+        "cmd": "npx next build (scratch copy without docs/ and tasks/, node_modules symlinked)",
+        "exit_code": 0,
+        "output_tail": "Compiled successfully; 33 routes, Middleware 56.7 kB"
+      },
+      {
+        "cmd": "next start -p 3121 (scratch build) + curl /buyers/new?next=/%5Cevil.example, /buyers, /inquiries/new",
+        "exit_code": 0,
+        "output_tail": "all 307 -> /login, no 500"
+      }
+    ],
+    "all_checks_green": false,
+    "contract_deviations": [
+      "BuyerForm opened from an inquiry (?from_inquiry=) starts as Export when the phone is not +91 and prefills the country from the calling code (UAE, Saudi, Oman, Qatar, Bahrain, Kuwait, Bangladesh, Nepal, Sri Lanka, Malaysia, Indonesia, Germany, UK, Netherlands, USA); screens.md 8 says default UAE. Unknown codes leave Country empty and required.",
+      "The earlier deviation note 'trg_buyers_code is used by the inquiry + New buyer shortcut' no longer applies: the inquiry form makes no buyer row (screens.md 5 as written)."
+    ],
+    "open_issues": [
+      "docs/qa/sprint-b/gate-2-evidence/labelcheck.ts (QA evidence) is picked up by tsconfig include **/*.ts and fails npm run typecheck and npx next build with 7 x TS2802 (matchAll / Set iteration without downlevelIteration). Not a dev1 file: exclude docs/qa in tsconfig or use Array.from() in that script.",
+      "Plant can still add notes / reminders on a buyer page (follow_ups entity_type 'buyer' maps to the buyers module, which Plant holds). Not in the findings and flows.md 11 does not list buyer notes; left as is, QA to decide.",
+      "createBuyerAction still writes the buyer and its primary contact in two calls (not atomic). Phone is validated before the first write, so a contact failure is unlikely; not part of this round's findings."
+    ],
+    "notes_for_qa": [
+      "G2-04 demo step: '+ New buyer' on /inquiries/new saves only name + phone on the inquiry (no BUY row). On the inquiry detail, 'Save as buyer' opens /buyers/new?from_inquiry=<id>; seeded INQ-0010 (+971) opens as Export / United Arab Emirates.",
+      "Plant (ops@) on buyers: /buyers/new and /buyers/[id]/edit redirect, Edit / New buttons hidden, actions return access denied, DB policies (dev2) refuse writes.",
+      "Redirect guard: /buyers/new?next=/%5Cevil.example (or /%09/evil.example, /.//evil.example) falls back to the buyer / inquiry page after save."
+    ],
+    "notes_for_other_devs": [
+      "dev3 (G2-04 co-owner): orders/helpers.ts isExportCountry('') returns false while quotes treat '' as export. Dev-1 no longer creates buyers with country ''; deciding on isExportType(buyer.buyer_type) from src/types/buyers.ts would make orders and quotes agree.",
+      "dev2: 0004 section 7 now narrows buyers UPDATE to (company_name, buyer_type, country, gstin, pan, incoterm, preferred_currency, payment_terms, credit_period_days, address, city, state, status, updated_at); your security-fixes test already checks has_any_column_privilege. A future buyers column the form must edit needs adding to that grant.",
+      "all: src/types/buyers.ts exports canWriteBuyers(role) (owner / accountant / sales) for any screen that offers a buyer edit."
+    ]
+  }
+}

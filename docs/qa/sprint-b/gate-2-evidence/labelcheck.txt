@@ -1,0 +1,33 @@
+files scanned: 94; literal key uses: 566; missing keys: 1
+  MISSING quotes.about_inr_rate  in src/app/(dashboard)/quotes/helpers.ts  (local dicts: none)
+keys used with an English text but no Gujarati text: 0
+dynamic key prefixes (checked below against DB codes): 25
+  DYN lost_reason.${…}  (src/app/(dashboard)/inquiries/[id]/page.tsx)
+  DYN status.inquiry.${…}  (src/app/(dashboard)/inquiries/page.tsx)
+  DYN incoterm.${…}  (src/app/(dashboard)/quotes/[id]/page.tsx)
+  DYN lost_reason.${…}  (src/app/(dashboard)/quotes/[id]/page.tsx)
+  DYN dispatch_mode.${…}  (src/app/(dashboard)/orders/[id]/page.tsx)
+  DYN product.color.${…}  (src/app/(dashboard)/orders/helpers.ts)
+  DYN product.form.${…}  (src/app/(dashboard)/orders/helpers.ts)
+  DYN checklist.${…}  (src/app/(dashboard)/orders/helpers.ts)
+  DYN product.color.${…}  (src/components/inquiries/helpers.ts)
+  DYN product.form.${…}  (src/components/inquiries/helpers.ts)
+  DYN lost_reason.${…}  (src/components/inquiries/inquiry-actions.tsx)
+  DYN buyer_type.${…}  (src/components/buyers/buyer-form.tsx)
+  DYN incoterm.${…}  (src/components/buyers/buyer-form.tsx)
+  DYN product.color.${…}  (src/components/samples/product-short.ts)
+  DYN product.form.${…}  (src/components/samples/product-short.ts)
+  DYN status.sample.${…}  (src/components/samples/sample-list.tsx)
+  DYN incoterm.${…}  (src/components/quotes/quote-accept-form.tsx)
+  DYN lost_reason.${…}  (src/components/quotes/quote-actions.tsx)
+  DYN incoterm.${…}  (src/components/quotes/quote-form.tsx)
+  DYN status.quote.${…}  (src/components/quotes/quote-list.tsx)
+  DYN lost_reason.${…}  (src/components/quotes/quote-list.tsx)
+  DYN checklist.${…}  (src/components/orders/checklist-view.tsx)
+  DYN status.order.${…}  (src/components/orders/order-list.tsx)
+  DYN dispatch_mode.${…}  (src/components/orders/packing-card.tsx)
+  DYN pay_mode.${…}  (src/components/payments/payment-form.tsx)
+DB code -> label key gaps: 0
+jargon hits in user-visible strings: 0
+  HARDCODED src/app/(print)/orders/[id]/print/[doc]/page.tsx:379: "Packing list"
+hard-coded English text nodes (2+ words): 1

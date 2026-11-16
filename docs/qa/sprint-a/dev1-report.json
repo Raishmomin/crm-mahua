@@ -1,0 +1,116 @@
+{
+ "summary": "Dev-1 Sprint A done: project now boots from zero on a plain Postgres and is ready for hosted Supabase. Added supabase/migrations/0000_auth_shim.sql (creates or upgrades auth.users + auth.identities when GoTrue is absent, no-op on Supabase; roles anon/authenticated/service_role; USAGE on schema auth with a permission-safe grant). 0001 now creates auth.uid()/auth.jwt() only when missing (lines 5-21 only). New scripts/db-url.ts (DATABASE_URL, maskDbUrl, default 127.0.0.1:5432/onion_crm); scripts/seed.ts applies every migrations/*.sql then seed/*.sql in filename order with per-file timing and fails on the first file by name; supabase/seed.sql git-mv'd to supabase/seed/01_core.sql and made fully idempotent (fixed ids 6666- price list, 7777- costs, 8888- contacts, ON CONFLICT (id) DO UPDATE, legacy random-id duplicates removed, BUY counter = 4). Demo logins: on the local shim the seed writes real bcrypt hashes for DemoPass123! plus identities rows; on Supabase scripts/seed-users.ts creates the 4 users via auth.admin.createUser with the fixed UUIDs (refreshes password if already registered, fails clearly on id mismatch), and skips with the required message when keys are placeholders. package.json: db:seed = seed-users then seed, db:seed:sql = SQL only; installed eslint@8, eslint-config-next@14.2.20, server-only; .eslintrc.json makes npm run lint non-interactive. Added src/middleware.ts (Supabase updateSession with getAll/setAll + getUser), switched server.ts to getAll/setAll, admin.ts imports 'server-only'. Added docker-compose.yml (mahua-crm-postgres, PG_PORT default 5432, healthcheck, named volume), rewrote .env.example (+NEXT_PUBLIC_DEMO_MODE=true, also appended to .env.local), README quickstart (local + hosted paths, 4 demo logins), docs/setup/hosted-supabase.md. Validation: fresh DB mahua_fresh seeded twice with identical counts (6/12/6/4/5/4) and all 4 hashes length 60 verifying true, then dropped; onion_crm (hand-made 7-column shim) upgraded and seeded; typecheck, lint, test (5/5), ci:tenant-check and next build all exit 0; .env.local untracked and supabase/.temp ignored.",
+ "files_changed": [
+  "/home/raish/raish/mahua-crm/supabase/migrations/0000_auth_shim.sql",
+  "/home/raish/raish/mahua-crm/supabase/migrations/0001_core_system.sql",
+  "/home/raish/raish/mahua-crm/supabase/seed/01_core.sql",
+  "/home/raish/raish/mahua-crm/scripts/db-url.ts",
+  "/home/raish/raish/mahua-crm/scripts/seed.ts",
+  "/home/raish/raish/mahua-crm/scripts/seed-users.ts",
+  "/home/raish/raish/mahua-crm/package.json",
+  "/home/raish/raish/mahua-crm/package-lock.json",
+  "/home/raish/raish/mahua-crm/.eslintrc.json",
+  "/home/raish/raish/mahua-crm/src/middleware.ts",
+  "/home/raish/raish/mahua-crm/src/lib/supabase/server.ts",
+  "/home/raish/raish/mahua-crm/src/lib/supabase/admin.ts",
+  "/home/raish/raish/mahua-crm/docker-compose.yml",
+  "/home/raish/raish/mahua-crm/.env.example",
+  "/home/raish/raish/mahua-crm/.env.local",
+  "/home/raish/raish/mahua-crm/README.md",
+  "/home/raish/raish/mahua-crm/docs/setup/hosted-supabase.md",
+  "/home/raish/raish/mahua-crm/tasks/todo.md"
+ ],
+ "commands_run": [
+  {
+   "cmd": "npm i -D eslint@8 eslint-config-next@14.2.20 && npm i server-only",
+   "exit_code": 0,
+   "output_tail": "package.json now has: \"server-only\": \"^0.0.1\" (dependencies), \"eslint\": \"^8.57.1\", \"eslint-config-next\": \"^14.2.20\" (devDependencies). npm audit notices only."
+  },
+  {
+   "cmd": "git mv supabase/seed.sql supabase/seed/01_core.sql",
+   "exit_code": 0,
+   "output_tail": "git status: R  supabase/seed.sql -> supabase/seed/01_core.sql"
+  },
+  {
+   "cmd": "node (pg) CREATE DATABASE mahua_fresh; DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/mahua_fresh npm run db:seed  (run 1)",
+   "exit_code": 0,
+   "output_tail": "Skipping auth users (no Supabase keys): local shim will insert them in SQL\nDatabase: postgresql://postgres:****@127.0.0.1:5432/mahua_fresh\nApplying 3 migration(s)...\nok   supabase/migrations/0000_auth_shim.sql (46 ms)\nok   supabase/migrations/0001_core_system.sql (108 ms)\nok   supabase/migrations/0002_catalog_and_buyers.sql (67 ms)\nApplying 1 seed file(s)...\nok   supabase/seed/01_core.sql (343 ms)\nSeed completed.\nexit=0\ncounts after run 1: {\"products\":\"6\",\"price_list_items\":\"12\",\"product_costs\":\"6\",\"buyers\":\"4\",\"buyer_contacts\":\"5\",\"profiles\":\"4\",\"auth_users\":\"4\",\"auth_identities\":\"4\"}"
+  },
+  {
+   "cmd": "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/mahua_fresh npm run db:seed  (run 2) + counts + password check",
+   "exit_code": 0,
+   "output_tail": "ok   supabase/seed/01_core.sql (362 ms)\nSeed completed.\nexit=0\ncounts after run 2: {\"products\":\"6\",\"price_list_items\":\"12\",\"product_costs\":\"6\",\"buyers\":\"4\",\"buyer_contacts\":\"5\",\"profiles\":\"4\",\"auth_users\":\"4\",\"auth_identities\":\"4\"}\nSELECT email, length(encrypted_password), encrypted_password = crypt('DemoPass123!', encrypted_password):\naccountant@mahuvacrm.com 60 true | admin@mahuvacrm.com 60 true | ops@mahuvacrm.com 60 true | sales@mahuvacrm.com 60 true (aud/role authenticated, instance_id 0000...)\ncomment: mahua-crm local auth shim\nhas_schema_privilege(auth, USAGE): authenticated true, anon true, service_role true; BUY counter=4"
+  },
+  {
+   "cmd": "node (pg) DROP DATABASE mahua_fresh",
+   "exit_code": 0,
+   "output_tail": "dropped mahua_fresh; databases now: onion_crm, postgres, template0, template1"
+  },
+  {
+   "cmd": "npm run db:seed  (against onion_crm, existing 7-column hand-made shim)",
+   "exit_code": 0,
+   "output_tail": "Skipping auth users (no Supabase keys): local shim will insert them in SQL\nDatabase: postgresql://postgres:****@127.0.0.1:5432/onion_crm\nApplying 3 migration(s)...\nok   supabase/migrations/0000_auth_shim.sql (54 ms)\nok   supabase/migrations/0001_core_system.sql (24 ms)\nok   supabase/migrations/0002_catalog_and_buyers.sql (20 ms)\nApplying 1 seed file(s)...\nok   supabase/seed/01_core.sql (360 ms)\nSeed completed.\nexit=0\nverify: auth.users cols now id,email,raw_user_meta_data,encrypted_password,email_confirmed_at,created_at,updated_at,instance_id,aud,role,raw_app_meta_data; auth tables: identities,users; 4 demo hashes len 60 ok true; counts products 6, price_list_items 12, product_costs 6, buyers 4, buyer_contacts 5, demo_profiles 4, identities 4; price_list dup keys 0; owner modules 13, accountant 10, sales 9, ops 6"
+  },
+  {
+   "cmd": "npm run typecheck",
+   "exit_code": 0,
+   "output_tail": "> tsc --noEmit\n(no output)\nexit=0"
+  },
+  {
+   "cmd": "CI=1 npm run lint",
+   "exit_code": 0,
+   "output_tail": "> next lint\n\u2714 No ESLint warnings or errors\nexit=0"
+  },
+  {
+   "cmd": "npm test",
+   "exit_code": 0,
+   "output_tail": " RUN  v2.1.3 /home/raish/raish/mahua-crm\n \u2713 tests/rls-tenant-isolation.test.ts  (5 tests) 140ms\n Test Files  1 passed (1)\n      Tests  5 passed (5)\n   Duration  1.33s\nexit=0"
+  },
+  {
+   "cmd": "npm run ci:tenant-check",
+   "exit_code": 0,
+   "output_tail": "\u2705 CI Tenant Check PASSED: All public tables enforce org_id, indexes, and RLS policies.\nexit=0"
+  },
+  {
+   "cmd": "NEXT_TELEMETRY_DISABLED=1 npx next build",
+   "exit_code": 0,
+   "output_tail": " \u2713 Compiled successfully\n   Linting and checking validity of types ...\n \u2713 Generating static pages (9/9)\nRoute (app): / , /_not-found, /access-denied, /account-inactive, /login, /settings, /users\n\u0192 Middleware                             56.7 kB\nexit=0"
+  },
+  {
+   "cmd": "git ls-files | grep -i env; git ls-files --error-unmatch .env.local; git check-ignore -v .env.local supabase/.temp/x",
+   "exit_code": 0,
+   "output_tail": ".env.example\n.env.local tracked? no\n.gitignore:26:.env*.local\t.env.local\n.gitignore:33:supabase/.temp/\tsupabase/.temp/x"
+  }
+ ],
+ "all_checks_green": true,
+ "open_issues": [
+  "Web login and scripts/seed-users.ts against a real GoTrue cannot be verified yet (no Supabase stack, no hosted credentials). Only the placeholder-skip path of seed-users.ts was exercised; the createUser/updateUserById path compiles (AdminUserAttributes.id exists in installed @supabase/auth-js 2.65.1) but has not run against a live project.",
+  "Migration 0000 and the guarded 0001 block have been tested on plain Postgres (fresh and hand-made shim) only; the 'both auth tables exist' (Supabase) branch and the insufficient_privilege fallback for GRANT USAGE ON SCHEMA auth are untested until credentials arrive.",
+  "tests/rls-tenant-isolation.test.ts (Dev-2's area) still applies only 0001 and 0002 itself; it passes on onion_crm only because the seed already ran 0000 there. On a brand-new database the test would need 0000 first (see notes_for_other_devs).",
+  "The 'Try as' buttons on the login page are Dev-3's work; NEXT_PUBLIC_DEMO_MODE=true is already present in .env.local and .env.example."
+ ],
+ "notes_for_qa": [
+  "Demo logins: admin@mahuvacrm.com (Owner), accountant@mahuvacrm.com (Accounts), sales@mahuvacrm.com (Sales), ops@mahuvacrm.com (Plant); password DemoPass123! for all four. Fixed ids 22222222-2222-4222-8222-22222222222{1,2,3,4}.",
+  "Contract deviation recorded in tasks/todo.md: the demo owner keeps all 13 modules in profiles.modules (contracts.md section 8 said to drop documents/reports/audit; the task and screens.md say keep them and hide in the menu). Accountant 10, sales 9, ops 6 modules unchanged from before.",
+  "Contract silent, choices made: price_list_items ids 66666666-6666-4666-8666-6666666666NN (01-12), product_costs 77777777-7777-4777-8777-7777777777NN (01-06), buyer_contacts 88888888-8888-4888-8888-8888888888NN (01-05) as instructed. These ranges coincide with the contract's seed-02/03 ranges for inquiries/samples/quotations in OTHER tables; different tables, so no PK clash, but do not look rows up by uuid alone.",
+  "The seed deletes legacy random-id rows for the demo org in price_list_items / product_costs / buyer_contacts that share a natural key with a fixed-id row (one-time cleanup of the old seed; on onion_crm this is why counts stayed 12/6/5 instead of doubling). Rows with other keys are left alone.",
+  "Profile full_name values are now plain names without the old role suffixes ('Hareshbhai Mehta', not 'Hareshbhai Mehta (Owner)'); the job word comes from profiles.role via labels.",
+  "auth.identities rows on the local shim use id = user id, provider 'email', provider_id = user id. Real Supabase ids differ; nothing in the app depends on identities.",
+  "Local shim detection in 01_core.sql: auth.identities exists AND role supabase_auth_admin does not exist, OR auth.users has the comment 'mahua-crm local auth shim'. On Supabase the seed never writes auth.users.",
+  "npm run db:seed = tsx scripts/seed-users.ts && tsx scripts/seed.ts; npm run db:seed:sql = SQL only. seed-users.ts prints 'Skipping auth users (no Supabase keys): local shim will insert them in SQL' when NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY are missing or contain your-project / dummy / your- placeholders.",
+  "To test a fresh bootstrap yourself: create a database with the pg client, then DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/<db> npm run db:seed (twice); counts must stay 6/12/6/4/5/4 and SELECT email, length(encrypted_password), encrypted_password = crypt('DemoPass123!', encrypted_password) FROM auth.users must show 60/true.",
+  "docker-compose.yml was written but NOT started (onion-crm-postgres holds 5432). To run both: PG_PORT=5433 docker compose up -d and point DATABASE_URL at 5433.",
+  "next build passed with the middleware (56.7 kB); public pages render. The middleware only refreshes the session (getUser); it does not redirect, pages still call requireAuth/requireModule."
+ ],
+ "notes_for_other_devs": [
+  "Dev-2: scripts/db-url.ts is ready; import { DATABASE_URL, maskDbUrl } from '../scripts/db-url' (tests) or './db-url' (scripts). It loads .env.local then .env via dotenv and defaults to postgresql://postgres:postgres@127.0.0.1:5432/onion_crm.",
+  "Dev-2: tests/helpers/db.ts applyMigrations should apply ALL supabase/migrations/*.sql in filename order starting with 0000_auth_shim.sql; tests/rls-tenant-isolation.test.ts currently applies only 0001 and 0002 and would fail on a fresh database (relation auth.users missing). It passes today only because the seed already ran 0000 on onion_crm.",
+  "Dev-2: migration 0003 was not present when I ran (ls supabase/migrations showed 0000, 0001, 0002). scripts/seed.ts picks it up automatically by filename order. 0001 lines 23-35 (GRANT ALL block) are untouched as agreed.",
+  "Dev-2: 0000 now creates roles anon and service_role (NOLOGIN) besides authenticated, and grants USAGE on schema auth to all three; auth.uid() as authenticated works on plain Postgres. Pre-existing: the RLS test leaves auth.users rows admin@tenant-a.com / admin@tenant-b.com / sales@tenant-a.com behind (not cleaned in afterAll).",
+  "Dev-3: NEXT_PUBLIC_DEMO_MODE=true is in .env.local and documented in .env.example; gate the 'Try as' buttons on process.env.NEXT_PUBLIC_DEMO_MODE === 'true'. Demo password DemoPass123!, emails as in screens.md.",
+  "Dev-3: the demo owner profile holds all 13 modules in the DB; hide documents / reports / audit from the menu (screens.md line 30). Profile full names are now plain ('Hareshbhai Mehta', 'Nileshbhai Shah', 'Pooja Patel', 'Dineshbhai Vaghela').",
+  "Dev-3: src/lib/supabase/server.ts now uses the getAll/setAll cookie API; createClient() signature is unchanged. src/lib/supabase/client.ts untouched.",
+  "All: npm run lint passed with zero warnings/errors across the whole tree at the time of my run (11:4x), so no lint findings in anyone else's files. Lint runs next/core-web-vitals; scripts/ and tests/ are not linted by next lint.",
+  "All: do not import src/lib/supabase/admin.ts from src/app/** (it now has import 'server-only' and bypasses RLS). scripts/seed-users.ts uses @supabase/supabase-js directly on purpose."
+ ]
+}

@@ -1,0 +1,3 @@
+plant UPDATE with WHERE id: 0 rows
+plant UPDATE without WHERE: 5 rows
+balance reminder due_on before=2026-11-09 after=2026-11-09 (rolled back)

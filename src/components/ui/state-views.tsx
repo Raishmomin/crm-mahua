@@ -1,46 +1,53 @@
-import React from 'react';
-import { AlertCircle, Inbox, Loader2 } from 'lucide-react';
-import { Button } from './button';
-import { LABELS } from '@/lib/labels';
+'use client';
 
-export function LoadingSkeleton({ rows = 5 }: { rows?: number }) {
+import React from 'react';
+import Link from 'next/link';
+import { AlertCircle, CheckCircle2, Inbox, type LucideIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { t, type Lang } from '@/lib/i18n';
+import { Button, buttonVariants } from './button';
+import { useLang } from '@/components/shell/lang-provider';
+
+export function LoadingSkeleton({ rows = 3, lang, className }: { rows?: number; lang?: Lang; className?: string }) {
+  const ctxLang = useLang();
   return (
-    <div className="space-y-3 p-4 animate-pulse">
-      <div className="h-8 bg-slate-200 rounded w-1/4"></div>
-      <div className="space-y-2">
-        {Array.from({ length: rows }).map((_, i) => (
-          <div key={i} className="h-12 bg-slate-100 rounded w-full flex items-center px-4 space-x-4">
-            <div className="h-4 bg-slate-200 rounded w-1/6"></div>
-            <div className="h-4 bg-slate-200 rounded w-1/3"></div>
-            <div className="h-4 bg-slate-200 rounded w-1/4"></div>
-            <div className="h-4 bg-slate-200 rounded w-1/12 ml-auto"></div>
-          </div>
-        ))}
-      </div>
+    <div aria-busy="true" aria-label={t(lang ?? ctxLang, 'common.loading')} className={cn('space-y-3', className)}>
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="h-[72px] animate-pulse rounded-xl bg-slate-100" />
+      ))}
     </div>
   );
 }
 
-export function EmptyState({
-  title = LABELS.common.emptyTitle,
-  description = LABELS.common.emptyDesc,
-  actionLabel,
-  onAction,
-}: {
-  title?: string;
-  description?: string;
+export interface EmptyStateProps {
+  /** label key or already translated text; default msg.empty.generic */
+  message?: string;
+  /** 'check' shows a green tick (msg.empty.todo / msg.empty.money) */
+  icon?: 'inbox' | 'check' | LucideIcon;
   actionLabel?: string;
+  actionHref?: string;
   onAction?: () => void;
-}) {
+  lang?: Lang;
+  className?: string;
+}
+
+/** One sentence, big icon, optional primary button. */
+export function EmptyState({ message, icon = 'inbox', actionLabel, actionHref, onAction, lang, className }: EmptyStateProps) {
+  const ctxLang = useLang();
+  const l = lang ?? ctxLang;
+  const text = t(l, message ?? 'msg.empty.generic');
+  const Icon: LucideIcon = icon === 'inbox' ? Inbox : icon === 'check' ? CheckCircle2 : icon;
   return (
-    <div className="flex flex-col items-center justify-center p-12 text-center rounded-lg border border-dashed border-slate-300 bg-slate-50/50">
-      <div className="rounded-full bg-slate-100 p-3 text-slate-400 mb-3">
-        <Inbox className="h-8 w-8" />
-      </div>
-      <h3 className="text-base font-semibold text-slate-800">{title}</h3>
-      <p className="mt-1 text-sm text-slate-500 max-w-sm">{description}</p>
-      {actionLabel && (
-        <Button onClick={onAction} className="mt-4" size="sm">
+    <div className={cn('flex flex-col items-center gap-3 p-10 text-center', className)}>
+      <Icon className={cn('h-10 w-10', icon === 'check' ? 'text-emerald-600' : 'text-slate-300')} aria-hidden="true" />
+      <p className="text-base text-slate-600">{text}</p>
+      {actionLabel && actionHref && (
+        <Link href={actionHref} className={buttonVariants({ className: 'mt-2' })}>
+          {actionLabel}
+        </Link>
+      )}
+      {actionLabel && !actionHref && onAction && (
+        <Button onClick={onAction} className="mt-2">
           {actionLabel}
         </Button>
       )}
@@ -48,26 +55,31 @@ export function EmptyState({
   );
 }
 
-export function ErrorState({
-  title = LABELS.common.errorTitle,
-  description = LABELS.common.errorDesc,
-  onRetry,
-}: {
-  title?: string;
-  description?: string;
+export interface ErrorStateProps {
+  /** label key or text; default msg.error.load. Never pass a raw error message. */
+  message?: string;
   onRetry?: () => void;
-}) {
+  retryHref?: string;
+  lang?: Lang;
+  className?: string;
+}
+
+export function ErrorState({ message, onRetry, retryHref, lang, className }: ErrorStateProps) {
+  const ctxLang = useLang();
+  const l = lang ?? ctxLang;
   return (
-    <div className="flex flex-col items-center justify-center p-12 text-center rounded-lg border border-rose-200 bg-rose-50/30">
-      <div className="rounded-full bg-rose-100 p-3 text-rose-600 mb-3">
-        <AlertCircle className="h-8 w-8" />
-      </div>
-      <h3 className="text-base font-semibold text-rose-900">{title}</h3>
-      <p className="mt-1 text-sm text-rose-600 max-w-sm">{description}</p>
+    <div className={cn('flex flex-col items-center gap-3 p-10 text-center', className)}>
+      <AlertCircle className="h-10 w-10 text-rose-500" aria-hidden="true" />
+      <p className="text-base text-slate-600">{t(l, message ?? 'msg.error.load')}</p>
       {onRetry && (
-        <Button onClick={onRetry} variant="outline" className="mt-4 border-rose-300 text-rose-800 hover:bg-rose-100" size="sm">
-          {LABELS.common.retry}
+        <Button variant="outline" onClick={onRetry} className="mt-2">
+          {t(l, 'btn.retry')}
         </Button>
+      )}
+      {!onRetry && retryHref && (
+        <Link href={retryHref} className={buttonVariants({ variant: 'outline', className: 'mt-2' })}>
+          {t(l, 'btn.retry')}
+        </Link>
       )}
     </div>
   );

@@ -1,0 +1,58 @@
+import type { LabelDict } from '@/lib/i18n';
+
+/**
+ * Inquiry-only words that docs/design/labels.md does not carry (contracts.md section 7).
+ * Dev-3 merges them into src/lib/labels.ts after Sprint B. Keys are prefixed `inquiries.`.
+ */
+export const INQUIRY_LABELS: LabelDict = {
+  en: {
+    'inquiries.save_as_buyer': 'Save as buyer',
+    'inquiries.open_quote': 'Open quote',
+    'inquiries.open_order': 'Open order',
+    'inquiries.not_found': 'This inquiry was not found.',
+    'inquiries.pick_buyer': 'Pick a buyer or type a name and phone.',
+    'inquiries.pick_product': 'Pick a product.',
+    'inquiries.type_qty': 'Type how much.',
+    'inquiries.no_match': "No inquiry matches. Try the buyer's phone number.",
+    'inquiries.empty_chip': 'No inquiries here.',
+    'inquiries.other_product': 'Other',
+    'inquiries.sample': 'Sample',
+    'inquiries.quote': 'Quote',
+    'inquiries.why_lost': 'Why did we lose it?',
+    'inquiries.came_by': 'Came by {source}',
+    'inquiries.needed_by': 'Needed by {date}',
+    'inquiries.unit_hint': 'MT = 1,000 kg',
+    'inquiries.new_buyer_hint': 'Name and phone are enough. Details can come later.',
+    'inquiries.change_buyer': 'Change buyer',
+    'inquiries.no_buyer_yet': 'Not saved as a buyer yet',
+    'inquiries.ago_days': '{n} days ago',
+    'inquiries.ago_today': 'today',
+    'inquiries.by_person': '{name}',
+    'inquiries.count_all': 'All',
+  },
+  gu: {
+    'inquiries.save_as_buyer': 'ગ્રાહક તરીકે સેવ કરો',
+    'inquiries.open_quote': 'ભાવપત્ર ખોલો',
+    'inquiries.open_order': 'ઓર્ડર ખોલો',
+    'inquiries.not_found': 'આ પૂછપરછ મળી નહીં.',
+    'inquiries.pick_buyer': 'ગ્રાહક પસંદ કરો અથવા નામ અને ફોન લખો.',
+    'inquiries.pick_product': 'માલ પસંદ કરો.',
+    'inquiries.type_qty': 'કેટલું જોઈએ તે લખો.',
+    'inquiries.no_match': 'કોઈ પૂછપરછ મળી નહીં. ગ્રાહકનો ફોન નંબર લખી જુઓ.',
+    'inquiries.empty_chip': 'અહીં કોઈ પૂછપરછ નથી.',
+    'inquiries.other_product': 'બીજું',
+    'inquiries.sample': 'સેમ્પલ',
+    'inquiries.quote': 'ભાવપત્ર',
+    'inquiries.why_lost': 'કેમ ગુમાવ્યો?',
+    'inquiries.came_by': '{source} થી આવી',
+    'inquiries.needed_by': '{date} સુધીમાં જોઈએ',
+    'inquiries.unit_hint': 'ટન = 1,000 કિલો',
+    'inquiries.new_buyer_hint': 'નામ અને ફોન પૂરતા છે. બાકી વિગત પછી.',
+    'inquiries.change_buyer': 'ગ્રાહક બદલો',
+    'inquiries.no_buyer_yet': 'હજુ ગ્રાહક તરીકે સેવ નથી',
+    'inquiries.ago_days': '{n} દિવસ પહેલાં',
+    'inquiries.ago_today': 'આજે',
+    'inquiries.by_person': '{name}',
+    'inquiries.count_all': 'બધી',
+  },
+};

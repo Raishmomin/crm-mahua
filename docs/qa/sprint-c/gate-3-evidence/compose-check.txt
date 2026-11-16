@@ -1,0 +1,5 @@
+# 2026-11-16 17:29:59
+docker: unknown command: docker compose
+docker compose (v2 plugin) available on this machine: NO (README gives the docker-compose fallback)
+docker-compose config -q EXIT=0
+onion-crm-postgres 0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp

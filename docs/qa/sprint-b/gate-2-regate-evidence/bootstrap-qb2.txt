@@ -1,0 +1,20 @@
+# mahua_qb2 fresh bootstrap (node qb-db.cjs create; DATABASE_URL=.../mahua_qb2 npm run db:seed x2; counts; views; ci:tenant-check; drop)
+created mahua_qb2
+== run 1: npm run db:seed EXIT=0 (ok 0000..0006 migrations, ok 01_core / 02_inquiries / 03_samples_quotes / 04_orders_money, Seed completed.)
+{"buyers":4,"inquiries":10,"samples":3,"quotations":4,"quotation_items":4,"orders":3,"order_items":3,"dispatches":2,"payments":4,"follow_ups":14,"follow_ups_pending":8,"follow_ups_notes":6}
+entity_code_counters BUY=4 INQ=10 ORD=3 SMP=3
+doc_counters INV/2627=2 PI/2627=3 QTN/2627=4 REC/2627=4 SDN/2627=2
+max codes {"inq":"INQ-0010","smp":"SMP-0003","qtn":"QTN-2627-0004","ord":"ORD-0003","pi":"PI-2627-0003","inv":"INV-2627-0002","sdn":"SDN-2627-0002","rec":"REC-2627-0004","buy":"BUY-0004"}
+next codes (rolled back) {"inq":"INQ-0011","smp":"SMP-0004","ord":"ORD-0004","buy":"BUY-0005","qtn":"QTN-2627-0005","pi":"PI-2627-0004","inv":"INV-2627-0003","sdn":"SDN-2627-0003","rec":"REC-2627-0005"}
+== run 2: npm run db:seed EXIT=0 (ok 0000..0006 migrations, ok 01_core / 02_inquiries / 03_samples_quotes / 04_orders_money, Seed completed.)
+{"buyers":4,"inquiries":10,"samples":3,"quotations":4,"quotation_items":4,"orders":3,"order_items":3,"dispatches":2,"payments":4,"follow_ups":14,"follow_ups_pending":8,"follow_ups_notes":6}
+entity_code_counters BUY=4 INQ=10 ORD=3 SMP=3
+doc_counters INV/2627=2 PI/2627=3 QTN/2627=4 REC/2627=4 SDN/2627=2
+max codes {"inq":"INQ-0010","smp":"SMP-0003","qtn":"QTN-2627-0004","ord":"ORD-0003","pi":"PI-2627-0003","inv":"INV-2627-0002","sdn":"SDN-2627-0002","rec":"REC-2627-0004","buy":"BUY-0004"}
+next codes (rolled back) {"inq":"INQ-0011","smp":"SMP-0004","ord":"ORD-0004","buy":"BUY-0005","qtn":"QTN-2627-0005","pi":"PI-2627-0004","inv":"INV-2627-0003","sdn":"SDN-2627-0003","rec":"REC-2627-0005"}
+diff run1 run2: IDENTICAL after second run
+schema fingerprint onion_crm == mahua_qb2:
+onion_crm {"funcs":{"h":"aca3766b18a26a9b60877244a735cfac","n":"67"},"policies":{"h":"c2182db45abba1d03b40e9f2dd80aad7","n":"61"},"triggers":{"h":"8313bedf2cd71860431a5fec4919c562","n":"24"},"colgrants":{"h":"498d260f891f03790b22c234a4d99c30","n":"724"},"upd":true,"recheck_trg":"1"}
+mahua_qb2 {"funcs":{"h":"aca3766b18a26a9b60877244a735cfac","n":"67"},"policies":{"h":"c2182db45abba1d03b40e9f2dd80aad7","n":"61"},"triggers":{"h":"8313bedf2cd71860431a5fec4919c562","n":"24"},"colgrants":{"h":"498d260f891f03790b22c234a4d99c30","n":"724"},"upd":true,"recheck_trg":"1"}
+ci:tenant-check against mahua_qb2: ✅ CI Tenant Check PASSED
+dropped mahua_qb2; remaining: 0

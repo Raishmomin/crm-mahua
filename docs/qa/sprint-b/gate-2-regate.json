@@ -1,0 +1,138 @@
+{
+  "verdict": "pass",
+  "summary": "QA gate 2 re-gate after the Sprint B fix round: PASS. All four QA-owned findings are fixed and proved by SQL probes in one rolled-back transaction on onion_crm (54/54 re-gate probes). G2-01: a sales EUR item gives below_floor_price [no_price] at any rate; a draft currency change gives below_floor_price [175000.00] or [no_price]; a refused fn_quote_update_draft leaves the draft unchanged; send uses the current floor ([2500.00] after a raise); sales cannot write the price list; the form offers INR/USD only and Rhine defaults to USD. G2-02: Plant's buyer and contact writes affect 0 rows or raise 42501, while sales and accountant still write. G2-03: 17 cross-org parent probes on samples, quotations, quotation_items, inquiries, follow_ups, buyer_contacts and price_list_items are all refused. G2-04: '+ New buyer' makes no buyer row, Save as buyer saves a real country, and quotes and orders agree on export. General checks are green: typecheck, lint, npm test 93/93, ci:tenant-check, next build (33 routes). The fresh mahua_qb2, seeded twice, matches the acceptance counts and is identical after the second run; its schema fingerprint equals onion_crm's; it was dropped. The gate-2 demo flow passes 96/96 with KPI and code lines identical to gate 2. The typecheck and build failure the devs reported was QA's own evidence script labelcheck.ts; QA fixed it with Array.from, and no source was edited. G2-05 (minor, not in this round) is still open. Signed-in UI is still blocked on hosted Supabase.",
+  "checks_run": [
+    {
+      "check": "npm run typecheck",
+      "result": "pass",
+      "output_tail": "First run: 7 x TS2802, all in docs/qa/sprint-b/gate-2-evidence/labelcheck.ts (QA file). QA changed the 7 loops to Array.from (output unchanged). Re-run: > tsc --noEmit (no output) EXIT=0"
+    },
+    {
+      "check": "npm run lint",
+      "result": "pass",
+      "output_tail": "> next lint\n✔ No ESLint warnings or errors\nEXIT=0"
+    },
+    {
+      "check": "npm test",
+      "result": "pass",
+      "output_tail": "✓ tests/quotes.test.ts (23 tests)\n✓ tests/orders-payments.test.ts (24 tests)\n✓ tests/inquiries.test.ts (23 tests)\n✓ tests/security-fixes.test.ts (18 tests)\n✓ tests/rls-tenant-isolation.test.ts (5 tests)\nTest Files 5 passed (5)\nTests 93 passed (93)"
+    },
+    {
+      "check": "npm run ci:tenant-check (onion_crm)",
+      "result": "pass",
+      "output_tail": "✅ CI Tenant Check PASSED: every public table has org_id, an index, ENABLE + FORCE RLS and an org policy; every view is security_invoker; web roles hold no TRUNCATE / REFERENCES / TRIGGER; all SECURITY DEFINER functions are allowlisted; number generators are locked."
+    },
+    {
+      "check": "npx next build (in repo, docs/ included)",
+      "result": "pass",
+      "output_tail": "✓ Compiled successfully; Linting and checking validity of types ok; ✓ Generating static pages (21/21); 33 ƒ routes; Middleware 56.7 kB; real 0m52s; build exit 0"
+    },
+    {
+      "check": "Fresh bootstrap mahua_qb2, seeded twice, acceptance counts",
+      "result": "pass",
+      "output_tail": "Both runs: ok 0000..0006, ok 01_core/02_inquiries/03_samples_quotes/04_orders_money, Seed completed. EXIT=0\n{\"buyers\":4,\"inquiries\":10,\"samples\":3,\"quotations\":4,\"quotation_items\":4,\"orders\":3,\"order_items\":3,\"dispatches\":2,\"payments\":4,\"follow_ups\":14,\"follow_ups_pending\":8,\"follow_ups_notes\":6}\nIDENTICAL after second run\nnext codes INQ-0011 SMP-0004 ORD-0004 BUY-0005 QTN-2627-0005 PI-2627-0004 INV-2627-0003 SDN-2627-0003 REC-2627-0005"
+    },
+    {
+      "check": "mahua_qb2 views, schema parity with onion_crm, tenant check, drop",
+      "result": "pass",
+      "output_tail": "v_home_kpis new 2, quotes_waiting 1, in_production 1, inr 511875.00, usd 18900.00, overdue 1, followups_today 5, papers_pending 1; fingerprints equal (67 funcs aca3766b, 61 policies c2182db4, 24 triggers 8313bedf, 724 col grants 498d260f); CI Tenant Check PASSED; dropped mahua_qb2, remaining: 0"
+    },
+    {
+      "check": "Gate-2 demo flow by SQL on onion_crm (one transaction, rolled back)",
+      "result": "pass",
+      "output_tail": "Main flow 96/96 PASS; KPIS/DELTA/code lines IDENTICAL to gate 2 (INQ-0011, SMP-0004, QTN-2627-0005, ORD-0004/PI-2627-0004, REC-2627-0005, INV-2627-0003/SDN-2627-0003). ROLLED BACK. 150 pass, 2 fail (both G2-05, not in this round). onion_crm after: inquiries 10, quotations 4, orders 3, buyers 4, orgs 1, W-MIN-A USD floor 2180"
+    },
+    {
+      "check": "Re-gate probes G2-01..G2-04 (same transaction)",
+      "result": "pass",
+      "output_tail": "54/54: G2-03 17 cross-org refusals (42501, or P0001 bad_payload [product_id]/[org_id]) + 1 control SMP-0005; G2-01 sales EUR item below_floor_price [no_price], currency switch [175000.00]/[no_price], refused RPC leaves draft unchanged, send after floor raise [2500.00], sales price-list writes 42501/0 rows; G2-02 ops UPDATE/DELETE buyers and contacts 0 rows, INSERT 42501, sales and accountant 1 row; G2-04 inquiry INQ-0012 buyer_id null, buyers 4 -> 4, Save as buyer BUY-0005 United Arab Emirates, linked, SMP-0005"
+    },
+    {
+      "check": "Sales can still send seeded draft QTN-2627-0004",
+      "result": "pass",
+      "output_tail": "item 140/kg, current floor 125/kg; sales fn_quote_send -> status sent (rolled back)"
+    },
+    {
+      "check": "Logic check of form helpers (logic-check.ts)",
+      "result": "pass",
+      "output_tail": "price list currencies INR, USD; no product offers EUR; Rhine default USD, chips [INR, USD]; quotes == orders for 4 buyers; export_importer + '' is export in both; +971 -> UAE, +91 -> India, +49 -> Germany, +92 -> Export, country asked. 19 pass, 0 fail"
+    },
+    {
+      "check": "next start :3130, unauthenticated curl on 22 fixed routes",
+      "result": "pass",
+      "output_tail": "all 22: first=307 -> final=200 http://localhost:3130/login; server log 0 error lines; server stopped (listeners on 3130: 0)"
+    },
+    {
+      "check": "Phone render 390x844 en+gu (playwright-core; MCP still cannot find /opt/google/chrome)",
+      "result": "pass",
+      "output_tail": "/buyers/new?from_inquiry=, /quotes/new?inquiry=, /inquiries/new -> /login, htmlLang en/gu, horizontalScroll false, rawKeys []; console: favicon 404 only (en)"
+    },
+    {
+      "check": "Label keys / jargon on changed files",
+      "result": "pass",
+      "output_tail": "files scanned: 95; literal key uses: 569; missing keys: 2 (both false positives: quotes.no_price, quotes.about_inr_rate go through useT(QUOTE_LABELS), en+gu present); no Gujarati text: 0; DB code gaps: 0; jargon hits: 0"
+    },
+    {
+      "check": "Signed-in screens (quote chips, no-price line, Save as buyer, Plant on buyers, order defaults)",
+      "result": "blocked",
+      "output_tail": "No auth server: no Supabase stack and no hosted credentials"
+    }
+  ],
+  "findings": [
+    {
+      "id": "G2-01",
+      "severity": "info",
+      "owner": "dev2",
+      "co_owners": [],
+      "file_ref": "supabase/migrations/0005_samples_quotes.sql (fn_quote_item_guard, trg_quotations_currency_recheck, fn_quote_send, fn_quote_update_draft); src/components/quotes/quote-form.tsx",
+      "problem": "FIXED, re-verified (was high). A sales item in a currency with no price row gives below_floor_price [no_price] at any rate. A draft currency change re-runs the guard ([175000.00] / [no_price]). fn_quote_update_draft is all-or-nothing. fn_quote_send uses the current floor ([2500.00] after a raise). Sales cannot write price_list_items. The form offers only priced currencies (Rhine defaults to USD).",
+      "fix": "None needed. Owner override for unpriced currencies stays by design; an owner-made EUR order is missing from the Home money tile (usability note)."
+    },
+    {
+      "id": "G2-02",
+      "severity": "info",
+      "owner": "dev2",
+      "co_owners": [
+        "dev1"
+      ],
+      "file_ref": "supabase/migrations/0003_security_fixes.sql 8a; src/app/(dashboard)/buyers/actions.ts; src/types/buyers.ts canWriteBuyers",
+      "problem": "FIXED, re-verified (was high). As ops@: UPDATE buyers / buyer_contacts affects 0 rows, DELETE affects 0 rows, INSERT raises 42501, and SELECT still returns 4. Sales and accountant UPDATE still affect 1 row. The buyer actions refuse Plant through canWriteBuyers.",
+      "fix": "None needed."
+    },
+    {
+      "id": "G2-03",
+      "severity": "info",
+      "owner": "dev2",
+      "co_owners": [
+        "dev1"
+      ],
+      "file_ref": "supabase/migrations/0004_inquiries_followups.sql inquiries/follow_ups policies; 0005_samples_quotes.sql samples/quotations/quotation_items policies + guard; 0003 buyer_contacts/price_list_items",
+      "problem": "FIXED, re-verified (was high). All 17 cross-org parent probes are refused: another org's buyer, product, packaging, inquiry, quotation or assigned_to user, on insert and on update. The refusal is 42501, or P0001 bad_payload from the item guard. The own-org control insert works.",
+      "fix": "None needed."
+    },
+    {
+      "id": "G2-04",
+      "severity": "info",
+      "owner": "dev1",
+      "co_owners": [
+        "dev3"
+      ],
+      "file_ref": "src/app/(dashboard)/inquiries/actions.ts; src/components/buyers/buyer-form.tsx + helpers.ts whereFromPhone; src/app/(dashboard)/orders/helpers.ts isExportBuyer",
+      "problem": "FIXED, re-verified (was major). '+ New buyer' saves name and phone on the inquiry with no buyer row (buyers stay at 4). Save as buyer makes an export buyer with a real country (+971 -> United Arab Emirates) and links the inquiry. Orders decide export by buyer_type, and quotes and orders agree for every seeded buyer and for the old export_importer + '' row.",
+      "fix": "None needed. The demo's 'Add one inquiry yourself' now passes through the buyer form before sample or quote (usability note)."
+    }
+  ],
+  "blocked_waiting_for_credentials": [
+    "Signed-in phone walkthrough (390x844, en + gu) of the fixed screens: quote form currency chips and the 'No price in X' line for sales vs the owner note; Save as buyer from INQ-0010 (+971) opening as Export / UAE; Plant on /buyers with no New / Edit; order Container + English WhatsApp defaults for export buyers",
+    "Demo-script timing run (5 minutes) on a phone"
+  ],
+  "usability_notes": [
+    "The demo step 'Add one inquiry yourself' now has one extra screen. '+ New buyer' makes no buyer, so Send sample / Make quote first opens the buyer form (Export and the country are prefilled from a +971 phone), then continues. The presenter should expect this screen.",
+    "'Save as buyer' on the inquiry's buyer card is an outline size='sm' button (h-10, about 42 px) outside a list row, the same pattern as G2-07. Dev-1 can use the default size when fixing G2-07.",
+    "The new quote messages are short and plain in en + gu ('No price in EUR - owner only' / 'EUR માં ભાવ નથી - ફક્ત માલિક'), and € EUR is no longer offered for Rhine.",
+    "Plant can still add a reminder on a buyer page (follow_ups with entity buyer). flows.md 11 is silent, so the designers should decide. It does not touch money or due dates.",
+    "An owner-made EUR quote can still become an order, and its money is not in the Home Money tile (INR + USD only). This is owner-only and by design.",
+    "G2-05 (minor, not in this round) is still open: sales can DELETE the 'Balance $18,900 due' reminder and the approved sample SMP-0001."
+  ],
+  "report_path": "/home/raish/raish/mahua-crm/docs/qa/gate-2-regate.md"
+}

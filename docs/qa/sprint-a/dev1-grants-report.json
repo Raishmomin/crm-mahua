@@ -1,0 +1,86 @@
+{
+ "summary": "Amendment A3 applied: in supabase/migrations/0001_core_system.sql the authenticated-role block now grants SELECT, INSERT, UPDATE, DELETE (not ALL) on all public tables and via ALTER DEFAULT PRIVILEGES ... ON TABLES. Sequence and routine grants are unchanged, the block stays idempotent (plain GRANT / ALTER DEFAULT PRIVILEGES inside the existing DO block) and valid on Supabase. Nothing else in 0001 changed; 0003 untouched; README / docs/setup carried no grant wording, so no doc change was needed. Validation: scratch mahua_a3 bootstrapped from empty with db:seed twice (identical) and ci:tenant-check PASSED; scratch mahua_a3b with only 0000+0001+0002 shows zero TRUNCATE rows for authenticated in information_schema.role_table_grants, has_table_privilege TRUNCATE = 0/13 tables, default table ACL = arwd; both scratch DBs dropped. Against onion_crm: db:seed:sql ok, ci:tenant-check PASSED, lint clean, npm test 22/22 on the one retry (first run hit a transient 'deadlock detected' from the two Vitest workers racing on one DB), typecheck fails only in Dev-3's in-progress UI files. A 3-line note was appended under the Dev-1 sprint line in tasks/todo.md.",
+ "files_changed": [
+  "/home/raish/raish/mahua-crm/supabase/migrations/0001_core_system.sql",
+  "/home/raish/raish/mahua-crm/tasks/todo.md"
+ ],
+ "commands_run": [
+  {
+   "cmd": "node a3-create.js (DROP IF EXISTS + CREATE DATABASE mahua_a3, mahua_a3b on 127.0.0.1:5432)",
+   "exit_code": 0,
+   "output_tail": "created mahua_a3\ncreated mahua_a3b"
+  },
+  {
+   "cmd": "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/mahua_a3 npm run db:seed (run #1)",
+   "exit_code": 0,
+   "output_tail": "Skipping auth users (no Supabase keys): local shim will insert them in SQL\nApplying 4 migration(s)...\nok   supabase/migrations/0000_auth_shim.sql (45 ms)\nok   supabase/migrations/0001_core_system.sql (90 ms)\nok   supabase/migrations/0002_catalog_and_buyers.sql (82 ms)\nok   supabase/migrations/0003_security_fixes.sql (50 ms)\nApplying 1 seed file(s)...\nok   supabase/seed/01_core.sql (370 ms)\nSeed completed."
+  },
+  {
+   "cmd": "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/mahua_a3 npm run db:seed (run #2)",
+   "exit_code": 0,
+   "output_tail": "ok   supabase/migrations/0000_auth_shim.sql (66 ms)\nok   supabase/migrations/0001_core_system.sql (40 ms)\nok   supabase/migrations/0002_catalog_and_buyers.sql (27 ms)\nok   supabase/migrations/0003_security_fixes.sql (74 ms)\nApplying 1 seed file(s)...\nok   supabase/seed/01_core.sql (381 ms)\nSeed completed."
+  },
+  {
+   "cmd": "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/mahua_a3 npm run ci:tenant-check",
+   "exit_code": 0,
+   "output_tail": "CI tenant check against postgresql://postgres:****@127.0.0.1:5432/mahua_a3\n\n\u2705 CI Tenant Check PASSED: every public table has org_id, an index, ENABLE + FORCE RLS and an org policy; every view is security_invoker; web roles hold no TRUNCATE / REFERENCES / TRIGGER; all SECURITY DEFINER functions are allowlisted; number generators are locked."
+  },
+  {
+   "cmd": "node a3b-partial.js (apply only 0000+0001+0002 to mahua_a3b, then query information_schema.role_table_grants / has_table_privilege / pg_default_acl for authenticated)",
+   "exit_code": 0,
+   "output_tail": "applied 0000_auth_shim.sql\napplied 0001_core_system.sql\napplied 0002_catalog_and_buyers.sql\npublic base tables: 13\nrole_table_grants TRUNCATE rows for authenticated (0000+0001+0002 only): 0 []\nprivilege types held by authenticated: DELETE=14, INSERT=14, SELECT=14, UPDATE=14\nhas_table_privilege TRUNCATE: { truncatable: 0, total: 13 }\ndefault privileges in public: [{\"defaclobjtype\":\"S\",\"defaclacl\":\"{authenticated=rwU/postgres}\"},{\"defaclobjtype\":\"f\",\"defaclacl\":\"{authenticated=X/postgres}\"},{\"defaclobjtype\":\"r\",\"defaclacl\":\"{authenticated=arwd/postgres}\"}]\nPASS: authenticated holds no TRUNCATE before 0003"
+  },
+  {
+   "cmd": "node -e (DROP DATABASE IF EXISTS mahua_a3, mahua_a3b WITH (FORCE); count remaining mahua_a3*)",
+   "exit_code": 0,
+   "output_tail": "dropped mahua_a3\ndropped mahua_a3b\nremaining mahua_a3* databases: 0"
+  },
+  {
+   "cmd": "npm run db:seed:sql (onion_crm)",
+   "exit_code": 0,
+   "output_tail": "Database: postgresql://postgres:****@127.0.0.1:5432/onion_crm\nApplying 4 migration(s)...\nok   supabase/migrations/0000_auth_shim.sql (10 ms)\nok   supabase/migrations/0001_core_system.sql (43 ms)\nok   supabase/migrations/0002_catalog_and_buyers.sql (30 ms)\nok   supabase/migrations/0003_security_fixes.sql (71 ms)\nApplying 1 seed file(s)...\nok   supabase/seed/01_core.sql (317 ms)\nSeed completed."
+  },
+  {
+   "cmd": "npm test (onion_crm, first attempt)",
+   "exit_code": 1,
+   "output_tail": " \u276f tests/rls-tenant-isolation.test.ts  (5 tests | 1 failed) 1445ms\n   \u00d7 Stage 0 Multi-Tenant RLS & 3-Wall Permissions > Tenant A session cannot update or delete Tenant B data\n     \u2192 deadlock detected\n \u2713 tests/security-fixes.test.ts  (17 tests) 1729ms\n Test Files  1 failed | 1 passed (2)\n      Tests  1 failed | 21 passed (22)"
+  },
+  {
+   "cmd": "sleep 30 && npm test (onion_crm, single retry)",
+   "exit_code": 0,
+   "output_tail": " \u2713 tests/rls-tenant-isolation.test.ts  (5 tests) 586ms\n \u2713 tests/security-fixes.test.ts  (17 tests) 871ms\n\n Test Files  2 passed (2)\n      Tests  22 passed (22)\n   Duration  2.13s"
+  },
+  {
+   "cmd": "npm run ci:tenant-check (onion_crm)",
+   "exit_code": 0,
+   "output_tail": "CI tenant check against postgresql://postgres:****@127.0.0.1:5432/onion_crm\n\n\u2705 CI Tenant Check PASSED: every public table has org_id, an index, ENABLE + FORCE RLS and an org policy; every view is security_invoker; web roles hold no TRUNCATE / REFERENCES / TRIGGER; all SECURITY DEFINER functions are allowlisted; number generators are locked."
+  },
+  {
+   "cmd": "npm run typecheck",
+   "exit_code": 1,
+   "output_tail": "src/app/(dashboard)/users/user-table.tsx(235,26): error TS2339: Property 'users' does not exist on type '{ en: Record<string, string>; gu: Partial<Record<string, string>>; }'.\nsrc/app/login/page.tsx(107,22): error TS2339: Property 'auth' does not exist on type ...\nsrc/components/shell/sidebar.tsx(87,27): error TS2339: Property 'label' does not exist on type 'NavItem'.\nsrc/components/shell/user-nav.tsx(35,60): error TS2339: Property 'auth' does not exist on type ...\nsrc/components/ui/language-toggle.tsx(1,32): error TS2307: Cannot find module '@/components/shell/language-toggle' or its corresponding type declarations.\n(25 errors, all in Dev-3's in-progress UI files: user-table.tsx, login/page.tsx, sidebar.tsx, user-nav.tsx, language-toggle.tsx)"
+  },
+  {
+   "cmd": "npm run lint",
+   "exit_code": 0,
+   "output_tail": "> next lint\n\n\u2714 No ESLint warnings or errors"
+  }
+ ],
+ "all_checks_green": false,
+ "open_issues": [
+  "npm run typecheck fails with 25 errors, all in Dev-3's in-progress Sprint A UI files (src/app/(dashboard)/users/user-table.tsx, src/app/login/page.tsx, src/components/shell/sidebar.tsx, src/components/shell/user-nav.tsx, src/components/ui/language-toggle.tsx): labels.ts was rewritten to the LabelDict shape but those consumers still use the old nested keys. Not Dev-1's; expected to clear when Dev-3 finishes.",
+  "npm test is flaky when the two Vitest files run in parallel workers against one database: first run failed with 'deadlock detected' in tests/rls-tenant-isolation.test.ts (DELETE FROM buyers as authenticated vs the other worker's applyMigrations transaction); the retry passed 22/22. Owner: Dev-2 (tests/**)."
+ ],
+ "notes_for_qa": [
+  "Fresh-bootstrap path is verified end to end on plain Postgres: an empty database seeded with `npm run db:seed` twice gives identical output; `npm run ci:tenant-check` passes on it.",
+  "With only 0000+0001+0002 applied (0003 not yet run), role authenticated holds exactly SELECT/INSERT/UPDATE/DELETE on all 13 public tables and no TRUNCATE; the default ACL for new tables is `authenticated=arwd/postgres`. Quick re-check SQL: SELECT table_name FROM information_schema.role_table_grants WHERE grantee='authenticated' AND table_schema='public' AND privilege_type='TRUNCATE'; -- expect 0 rows.",
+  "If `npm test` reports 'deadlock detected' in rls-tenant-isolation, rerun once; it is a worker race on the shared onion_crm database, not a product regression (see Dev-2 note).",
+  "Web login still cannot be verified locally (no Supabase stack / hosted credentials); this task touched only database grants, no UI."
+ ],
+ "notes_for_other_devs": [
+  "Dev-2: the advisory lock in tests/helpers/db.ts applyMigrations serialises migration-vs-migration only; a second worker's plain test query (e.g. the RLS file's DELETE FROM buyers, which locks buyers then reads profiles through the policy) can cross the first worker's migration transaction (holds profiles via REVOKE/ALTER, wants buyers) and Postgres reports a deadlock. Setting `test.fileParallelism: false` in vitest.config.ts (or running the whole file under the same advisory lock) would remove the race. vitest.config.ts is not in the ownership map, so I did not touch it.",
+  "Dev-2: no change needed in 0003 for A3; 0003's REVOKE ALL / GRANT SELECT, INSERT, UPDATE, DELETE block and the sequence/generator revokes remain the normalising step and still pass ci:tenant-check after 0001 re-runs.",
+  "Dev-3: npm run typecheck currently fails in user-table.tsx, login/page.tsx, sidebar.tsx, user-nav.tsx and language-toggle.tsx (old nested label keys / missing '@/components/shell/language-toggle' module); reported here only so nobody attributes it to the migration change.",
+  "Everyone: 0001 now grants SELECT, INSERT, UPDATE, DELETE on tables (not ALL). Sequence and routine grants in 0001 are unchanged by design; 0003 still revokes fn_next_code / fn_next_doc_no from web roles."
+ ]
+}

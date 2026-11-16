@@ -1,0 +1,26 @@
+=== Baseline (seeded story)
+SCRIPT ERROR error: deadlock detected
+    at /home/raish/raish/mahua-crm/node_modules/pg/lib/client.js:535:17
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async kpis (/home/raish/raish/mahua-crm/docs/qa/sprint-c/gate-3-evidence/demo-flow-gate3.cjs:76:14)
+    at async /home/raish/raish/mahua-crm/docs/qa/sprint-c/gate-3-evidence/demo-flow-gate3.cjs:93:14 {
+  length: 321,
+  severity: 'ERROR',
+  code: '40P01',
+  detail: 'Process 1751 waits for AccessShareLock on relation 17557 of database 16384; blocked by process 1750.\n' +
+    'Process 1750 waits for AccessExclusiveLock on relation 29870 of database 16384; blocked by process 1751.',
+  hint: 'See server log for query details.',
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'deadlock.c',
+  line: '1130',
+  routine: 'DeadLockReport'
+}
+EXIT=2

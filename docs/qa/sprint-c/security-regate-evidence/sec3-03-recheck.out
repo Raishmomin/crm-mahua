@@ -1,0 +1,39 @@
+PASS page.tsx: isPlant = profile.role === 'operations'
+PASS page.tsx: loadBuyerList called with withMoney: !isPlant
+PASS page.tsx: Plant sort is name only (no overdue-first sort)
+PASS page.tsx: fact2 (money amount) is undefined for Plant
+PASS page.tsx: money Status pill is undefined for Plant
+PASS page.tsx: overdue red class is off for Plant
+PASS page.tsx: all 3 money renders are inside the isPlant-guarded card block
+PASS queries.ts: v_money_due is only queried when withMoney is true
+PASS page.tsx: no money reference outside the guarded paths
+owner (owner): buyers=4, v_money_due rows (raw)=2, page reads v_money_due=true
+   Al-Barakah Spice & Grain LLC | $18,900 | overdue
+   Everest Food Products Pvt Ltd | ₹0 | paid
+   Haldiram Snacks Private Limited | ₹5,11,875 | due
+   Rhine Food Ingredients GmbH | ₹0 | paid
+PASS owner: fn_user_role() = owner
+accountant (accountant): buyers=4, v_money_due rows (raw)=2, page reads v_money_due=true
+   Al-Barakah Spice & Grain LLC | $18,900 | overdue
+   Everest Food Products Pvt Ltd | ₹0 | paid
+   Haldiram Snacks Private Limited | ₹5,11,875 | due
+   Rhine Food Ingredients GmbH | ₹0 | paid
+PASS accountant: fn_user_role() = accountant
+sales (sales): buyers=4, v_money_due rows (raw)=2, page reads v_money_due=true
+   Al-Barakah Spice & Grain LLC | $18,900 | overdue
+   Everest Food Products Pvt Ltd | ₹0 | paid
+   Haldiram Snacks Private Limited | ₹5,11,875 | due
+   Rhine Food Ingredients GmbH | ₹0 | paid
+PASS sales: fn_user_role() = sales
+plant (operations): buyers=4, v_money_due rows (raw)=0, page reads v_money_due=false
+   Al-Barakah Spice & Grain LLC | - | -
+   Everest Food Products Pvt Ltd | - | -
+   Haldiram Snacks Private Limited | - | -
+   Rhine Food Ingredients GmbH | - | -
+PASS plant: fn_user_role() = operations
+PASS plant still sees the buyer list (4 = owner 4)
+PASS A6 holds: v_money_due returns 0 rows to operations
+PASS plant cards: no amount, no pill (no '₹0 · Paid')
+PASS owner still sees the late buyer: Al-Barakah Spice & Grain LLC $18,900 overdue
+PASS accountant still sees the overdue pill
+SEC3-03 RECHECK OK

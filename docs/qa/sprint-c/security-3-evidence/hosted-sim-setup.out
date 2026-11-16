@@ -1,0 +1,31 @@
+NOTICE:  database "mahua_sc" does not exist, skipping
+DROP DATABASE
+DO
+CREATE ROLE
+GRANT ROLE
+CREATE DATABASE
+ALTER ROLE
+     rolname      | rolsuper | rolbypassrls | rolcreaterole 
+------------------+----------+--------------+---------------
+ sc_supa_postgres | f        | t            | t
+(1 row)
+
+CREATE SCHEMA
+CREATE EXTENSION
+GRANT
+ extname  | extnamespace 
+----------+--------------
+ pgcrypto | extensions
+(1 row)
+
+GRANT
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+ALTER DEFAULT PRIVILEGES
+    defaclrole    | defaclnamespace | defaclobjtype |                                                    defaclacl                                                    
+------------------+-----------------+---------------+-----------------------------------------------------------------------------------------------------------------
+ sc_supa_postgres | public          | S             | {authenticated=rwU/sc_supa_postgres,anon=rwU/sc_supa_postgres,service_role=rwU/sc_supa_postgres}
+ sc_supa_postgres | public          | f             | {authenticated=X/sc_supa_postgres,anon=X/sc_supa_postgres,service_role=X/sc_supa_postgres}
+ sc_supa_postgres | public          | r             | {authenticated=arwdDxtm/sc_supa_postgres,anon=arwdDxtm/sc_supa_postgres,service_role=arwdDxtm/sc_supa_postgres}
+(3 rows)
+

@@ -1,0 +1,468 @@
+Null display is "(null)".
+BEGIN
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 2
+INSERT 0 2
+INSERT 0 1
+INSERT 0 1
+INSERT 0 2
+INSERT 0 2
+INSERT 0 1
+INSERT 0 1
+CREATE FUNCTION
+GRANT
+=== A1 routines in public executable by PUBLIC / anon / authenticated
+ routines | public_exec | anon_exec | auth_exec 
+----------+-------------+-----------+-----------
+       70 |           0 |         0 |        22
+
+=== A2 authenticated may execute (names)
+                                                                                                                                                                                                             auth_exec_names                                                                                                                                                                                                              
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ fn_current_org, fn_dispatch_delivered, fn_dispatch_tick, fn_follow_up_done, fn_follow_up_module, fn_has_module, fn_inquiry_set_status, fn_order_advance_waiting, fn_order_dispatch, fn_order_set_packed, fn_order_set_status, fn_payment_record, fn_quote_accept, fn_quote_reject, fn_quote_send, fn_quote_update_draft, fn_require_module, fn_sample_create, fn_sample_set_status, fn_set_user_access, fn_set_user_active, fn_user_role
+
+=== A3 SECURITY DEFINER functions: count, without search_path=public, anon-executable, trigger fns executable by authenticated, generators
+ definers | definers_no_search_path | definers_anon | trigger_fns_auth | generators_auth 
+----------+-------------------------+---------------+------------------+-----------------
+       27 |                       0 |             0 |                0 | f
+
+=== A4 default privileges (pg_default_acl)
+   role   | schema | type |           defaclacl           
+----------+--------+------+-------------------------------
+ postgres | -      | f    | {postgres=X/postgres}
+ postgres | public | S    | {authenticated=rwU/postgres}
+ postgres | public | r    | {authenticated=arwd/postgres}
+
+=== A5 SEC1-03 legacy audit rows (expect 0 / 0)
+ product_costs_rows | bank_snapshots 
+--------------------+----------------
+                  0 |              0
+
+=== A6 web-role table privileges on function-only tables and money views (expect all f)
+     relname      | ins | upd | del | anon_sel 
+------------------+-----+-----+-----+----------
+ audit_log        | f   | f   | f   | f
+ dispatches       | f   | f   | f   | f
+ order_items      | f   | f   | f   | f
+ orders           | f   | f   | f   | f
+ payments         | f   | f   | f   | f
+ v_home_kpis      | f   | f   | f   | f
+ v_money_due      | f   | f   | f   | f
+ v_order_balances | f   | f   | f   | f
+
+=== B1 anon calls every routine in public with NULL args passed as sub-selects, so the planner cannot fold STRICT calls away (expect 42501 permission denied for every one)
+SET
+ set_config | set_config 
+------------+------------
+            | 
+
+                result                | n  | not_denied 
+--------------------------------------+----+------------
+ 42501 permission denied for function | 70 | (null)
+
+=== B2 anon SELECT / INSERT on every public table and view
+         result          | n  |                                                                                                                                                                                              objects                                                                                                                                                                                              
+-------------------------+----+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 42501 permission denied | 29 | app_settings,audit_log,business_settings,buyer_contacts,buyers,dispatches,doc_counters,entity_code_counters,follow_ups,inquiries,order_items,orders,organizations,packaging_types,payments,price_list_items,product_costs,products,profiles,quotation_items,quotations,samples,v_followups_today,v_home_kpis,v_inquiries_open,v_money_due,v_order_balances,v_orders_in_production,v_product_costs
+
+                 anon_insert_inquiry                 |                      anon_payment                      |                         anon_advance                          
+-----------------------------------------------------+--------------------------------------------------------+---------------------------------------------------------------
+ 42501 permission denied for function fn_current_org | 42501 permission denied for function fn_payment_record | 42501 permission denied for function fn_order_advance_waiting
+
+RESET
+=== C1 sales: INSERT with a forged start state or author (expect 42501 RLS on every forged row, ok on controls)
+SET
+              set_config              |                              set_config                               
+--------------------------------------+-----------------------------------------------------------------------
+ 22222222-2222-4222-8222-222222222223 | {"sub":"22222222-2222-4222-8222-222222222223","role":"authenticated"}
+
+         label          |                                 result                                  
+------------------------+-------------------------------------------------------------------------
+ inq status won         | 42501 new row violates row-level security policy for table "inquiries"
+ inq status quoted      | 42501 new row violates row-level security policy for table "inquiries"
+ inq lost_reason        | 42501 new row violates row-level security policy for table "inquiries"
+ inq closed_at          | 42501 new row violates row-level security policy for table "inquiries"
+ inq created_by owner   | 42501 new row violates row-level security policy for table "inquiries"
+ inq control            | ok rows=1
+ fu done_by owner       | 42501 new row violates row-level security policy for table "follow_ups"
+ fu note as owner       | 42501 new row violates row-level security policy for table "follow_ups"
+ fu reminder pre-ticked | 42501 new row violates row-level security policy for table "follow_ups"
+ fu pending w/ done_at  | 42501 new row violates row-level security policy for table "follow_ups"
+ fu payment (no module) | 42501 new row violates row-level security policy for table "follow_ups"
+ fu control note        | ok rows=1
+ fu control reminder    | ok rows=1
+ smp status sent        | 42501 new row violates row-level security policy for table "samples"
+ smp status approved    | 42501 new row violates row-level security policy for table "samples"
+ smp decided_on         | 42501 new row violates row-level security policy for table "samples"
+ smp created_by owner   | 42501 new row violates row-level security policy for table "samples"
+ smp control            | ok rows=1
+ qtn status sent        | 42501 new row violates row-level security policy for table "quotations"
+ qtn sent_at            | 42501 new row violates row-level security policy for table "quotations"
+ qtn decided_at         | 42501 new row violates row-level security policy for table "quotations"
+ qtn reject_reason      | 42501 new row violates row-level security policy for table "quotations"
+ qtn created_by owner   | 42501 new row violates row-level security policy for table "quotations"
+ qtn control            | ok rows=1
+
+=== C2 sales: forged totals on a new quote are replaced (expect 0.00 | 0.00 | 0.00)
+   quote_no    | subtotal | gst_amount | total | status 
+---------------+----------+------------+-------+--------
+ QTN-2627-0005 |     0.00 |       0.00 |  0.00 | draft
+
+INSERT 0 1
+=== C3 sales: deletes (system reminder, owner note, ticked reminder, own pending reminder, sent/approved sample, own plain note, to_send sample)
+                     label                     |                    result                    
+-----------------------------------------------+----------------------------------------------
+ del Balance $18,900 due (accountant reminder) | ok rows=0
+ del owner plain note cc16                     | ok rows=0
+ del own pending reminder cc03                 | ok rows=0
+ del own plain note cc11                       | ok rows=0
+ del EVERY follow-up (what is deletable?)      | ok rows=0
+ del sample SMP-0001 approved                  | ok rows=0
+ del sample SMP-0002 sent                      | ok rows=0
+ del sample SMP-0003 to_send (allowed)         | ok rows=1
+ upd follow_ups.done                           | 42501 permission denied for table follow_ups
+ upd follow_ups.created_by                     | 42501 permission denied for table follow_ups
+ upd samples.status                            | 42501 permission denied for table samples
+ upd quotations.total                          | 42501 permission denied for table quotations
+ upd inquiries.status                          | 42501 permission denied for table inquiries
+
+=== C4 sales: tick own system reminder via the definer, clear its date, then delete (A9 says only plain notes by author)
+ fn_follow_up_done 
+-------------------
+ 
+
+ clear_date | clear_date_cte 
+------------+----------------
+ ok rows=1  | ok rows=1
+
+UPDATE 1
+DELETE 0
+=== C5 residual: sales rewrites someone else's reminder / note through the UPDATE grant (note, due_on)
+              label               |  result   
+----------------------------------+-----------
+ push Balance $18,900 due to 2099 | ok rows=1
+ rewrite Balance note text        | ok rows=1
+ rewrite owner plain note cc16    | ok rows=1
+ push owner buyer reminder cc05   | ok rows=1
+
+UPDATE 1
+RESET
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222221
+
+SET
+                       effect                       | followups_today | money_overdue_count 
+----------------------------------------------------+-----------------+---------------------
+ owner Home after sales pushed the Balance reminder |               3 |                   1
+
+ owner_deletes_system_reminder 
+-------------------------------
+ ok rows=1
+
+RESET
+=== C6 operations and accountant on the same rows
+SET
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222224
+
+ who | del_owner_order_reminder |                            ins_done_by_owner                            | push_owner_order_reminder 
+-----+--------------------------+-------------------------------------------------------------------------+---------------------------
+ ops | ok rows=0                | 42501 new row violates row-level security policy for table "follow_ups" | ok rows=1
+
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222222
+
+    who     | del_own_system_reminder | del_own_plain_note 
+------------+-------------------------+--------------------
+ accountant | ok rows=0               | ok rows=0
+
+RESET
+=== D1 sales: every FK path with an org-B id and with a random id (expect identical results, never 23503)
+SET
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222223
+
+              label              |                                foreign_result                                | same_as_random 
+---------------------------------+------------------------------------------------------------------------------+----------------
+ inq.buyer_id ins                | 42501 new row violates row-level security policy for table "inquiries"       | t
+ inq.product_id ins              | 42501 new row violates row-level security policy for table "inquiries"       | t
+ inq.assigned_to ins             | 42501 new row violates row-level security policy for table "inquiries"       | t
+ inq.buyer_id upd                | 42501 new row violates row-level security policy for table "inquiries"       | t
+ inq.product_id upd              | 42501 new row violates row-level security policy for table "inquiries"       | t
+ inq.assigned_to upd             | 42501 new row violates row-level security policy for table "inquiries"       | t
+ fu.buyer_id ins                 | 42501 new row violates row-level security policy for table "follow_ups"      | t
+ fu.buyer_id upd                 | 42501 new row violates row-level security policy for table "follow_ups"      | t
+ smp.buyer_id ins                | 42501 new row violates row-level security policy for table "samples"         | t
+ smp.product_id ins              | 42501 new row violates row-level security policy for table "samples"         | t
+ smp.inquiry_id ins              | 42501 new row violates row-level security policy for table "samples"         | t
+ smp.buyer_id upd                | 42501 new row violates row-level security policy for table "samples"         | t
+ smp.product_id upd              | 42501 new row violates row-level security policy for table "samples"         | t
+ smp.inquiry_id upd              | 42501 new row violates row-level security policy for table "samples"         | t
+ fn_sample_create buyer          | 42501 new row violates row-level security policy for table "samples"         | t
+ fn_sample_create product        | 42501 new row violates row-level security policy for table "samples"         | t
+ fn_sample_create inquiry        | 42501 new row violates row-level security policy for table "samples"         | t
+ qtn.buyer_id ins                | 42501 new row violates row-level security policy for table "quotations"      | t
+ qtn.inquiry_id ins              | 42501 new row violates row-level security policy for table "quotations"      | t
+ qtn.buyer_id upd                | 42501 new row violates row-level security policy for table "quotations"      | t
+ qtn.inquiry_id upd              | 42501 new row violates row-level security policy for table "quotations"      | t
+ qi.quotation_id ins (draft B)   | 42501 not_found                                                              | t
+ qi.quotation_id ins as B org_id | 42501 not_found                                                              | t
+ qi.product_id ins               | P0001 bad_payload | product_id                                               | t
+ qi.packaging ins                | 42501 new row violates row-level security policy for table "quotation_items" | t
+ qi.quotation_id upd             | 42501 not_found                                                              | t
+ qi.product_id upd               | P0001 bad_payload | product_id                                               | t
+ qi.packaging upd                | 42501 new row violates row-level security policy for table "quotation_items" | t
+ bc.buyer_id ins                 | 42501 new row violates row-level security policy for table "buyer_contacts"  | t
+ fn_quote_update_draft buyer     | 42501 new row violates row-level security policy for table "quotations"      | t
+ fn_inquiry_set_status           | 42501 not_found                                                              | t
+ fn_follow_up_done               | 42501 not_found                                                              | t
+ fn_sample_set_status            | 42501 not_found                                                              | t
+ fn_quote_send                   | 42501 not_found                                                              | t
+ fn_quote_reject                 | 42501 not_found                                                              | t
+ fn_quote_accept                 | 42501 not_found                                                              | t
+ fn_order_set_status             | 42501 not_found                                                              | t
+ fn_order_set_packed             | 42501 not_found                                                              | t
+ fn_order_dispatch               | 42501 not_found                                                              | t
+ fn_dispatch_tick                | 42501 not_found                                                              | t
+ fn_dispatch_delivered           | 42501 not_found                                                              | t
+ fn_order_advance_waiting        | 42501 not_found                                                              | t
+
+RESET
+=== D2 owner / accountant: payment and staff functions with an org-B id vs a random id
+SET
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222221
+
+            label            | foreign_result  | same_as_random 
+-----------------------------+-----------------+----------------
+ owner fn_payment_record     | 42501 not_found | t
+ owner fn_set_user_access    | 42501 not_found | t
+ owner fn_set_user_active    | 42501 not_found | t
+ owner SELECT payments by id | ok rows=0       | t
+
+RESET
+=== E1 switched-off sales (fn_user_role NULL) adds an item at 1/kg and sends a quote
+UPDATE 1
+SET
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222223
+
+ role_reads | org_reads |    item_at_1    |                      send                      |                     payment                      
+------------+-----------+-----------------+------------------------------------------------+--------------------------------------------------
+ (null)     | (null)    | 42501 not_found | 42501 Access denied: module quotes is required | 42501 Access denied: module payments is required
+
+RESET
+UPDATE 1
+=== E2 active sales: item at 1/kg and EUR item (expect below_floor_price)
+SET
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222223
+
+            item_at_1             |           switch_to_eur            
+----------------------------------+------------------------------------
+ P0001 below_floor_price | 125.00 | P0001 below_floor_price | no_price
+
+RESET
+=== F1 fn_payment_record: future date, over-payment, controls (ORD-0003 INR due 511875, ORD-0002 USD due 18900, ORD-0001 paid)
+SET
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222222
+
+           label            |              result              
+----------------------------+----------------------------------
+ acct tomorrow              | P0001 bad_payload | received_on
+ acct +365 days             | P0001 bad_payload | received_on
+ acct 563062.51 INR (>110%) | P0001 bad_payload | over_payment
+ acct 563062.50 INR (=110%) | ok rows=1
+ acct 1e12 INR              | P0001 bad_payload | over_payment
+ acct 20790.01 USD (>110%)  | P0001 bad_payload | over_payment
+ acct 20790.00 USD (=110%)  | ok rows=1
+ acct 1 on paid ORD-0001    | P0001 bad_payload | over_payment
+ acct date NULL (-> today)  | ok rows=1
+ acct date 1900-01-01       | ok rows=1
+
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222221
+
+             label              |             result              
+--------------------------------+---------------------------------
+ owner tomorrow                 | P0001 bad_payload | received_on
+ owner 2,000,000 INR (override) | ok rows=1
+
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222223
+
+  who  |                      result                      
+-------+--------------------------------------------------
+ sales | 42501 Access denied: module payments is required
+
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222224
+
+ who |                      result                      
+-----+--------------------------------------------------
+ ops | 42501 Access denied: module payments is required
+
+    who     |                   result                   
+------------+--------------------------------------------
+ ops direct | 42501 permission denied for table payments
+
+RESET
+=== G1 money reads per role
+SET
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222224
+
+    who     | payments | receipt_by_id | balances | money_due | money_due_inr | money_due_usd | money_due_about_inr | money_overdue_count | orders_in_production | followups_today | audit_rows | adv_wait_ord3 
+------------+----------+---------------+----------+-----------+---------------+---------------+---------------------+---------------------+----------------------+-----------------+------------+---------------
+ operations |        0 |             0 |        0 |         0 |          0.00 |          0.00 |                0.00 |                   0 |                    1 |               3 |          0 | f
+
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222223
+
+  who  | payments | balances | money_due | money_due_inr | money_due_usd 
+-------+----------+----------+-----------+---------------+---------------
+ sales |        4 |        3 |         2 |     511875.00 |      18900.00
+
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222222
+
+    who     | payments | balances | money_due | money_due_inr | money_due_usd 
+------------+----------+----------+-----------+---------------+---------------
+ accountant |        4 |        3 |         2 |     511875.00 |      18900.00
+
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222221
+
+  who  | payments | balances | money_due | money_due_inr | money_due_usd | money_overdue_count | followups_today 
+-------+----------+----------+-----------+---------------+---------------+---------------------+-----------------
+ owner |        4 |        3 |         2 |     511875.00 |      18900.00 |                   1 |               3
+
+=== G2 residual money visible to operations through other tables (by contract: orders / quotes are org-wide reads)
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222224
+
+                                                  orders_money                                                   | quotes_visible | items_with_floor |                          money_notes                          
+-----------------------------------------------------------------------------------------------------------------+----------------+------------------+---------------------------------------------------------------
+ ORD-0001 total 504000.00 adv 0.00; ORD-0002 total 27000.00 adv 8100.00; ORD-0003 total 1023750.00 adv 511875.00 |              5 |                4 | Balance $18,900 due; Manish wants ₹125; cannot go below floor
+
+RESET
+=== H1 sales and operations: walls from review-1
+SET
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222223
+
+  who  |                self_promote                | costs |               truncate_audit                |  floor_1  |   bank    |                     next_code                     |                      next_doc                       | audit_rows |                             buyer_in_b                              |                step_dates                
+-------+--------------------------------------------+-------+---------------------------------------------+-----------+-----------+---------------------------------------------------+-----------------------------------------------------+------------+---------------------------------------------------------------------+------------------------------------------
+ sales | 42501 permission denied for table profiles |     0 | 42501 permission denied for table audit_log | ok rows=0 | ok rows=0 | 42501 permission denied for function fn_next_code | 42501 permission denied for function fn_next_doc_no |          0 | 42501 new row violates row-level security policy for table "buyers" | 42501 permission denied for table orders
+
+              set_config              
+--------------------------------------
+ bbbbbbbb-0000-4000-8000-00000000000b
+
+        who         |             current_org              | b_orders 
+--------------------+--------------------------------------+----------
+ sales GUC override | 11111111-1111-4111-8111-111111111111 |        0
+
+ set_config 
+------------
+ 
+
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222224
+
+ set_config 
+------------
+ true
+
+         who         |                 require_payments                 |                  quote_accept                  | costs |  floor_1  | buyers_upd 
+---------------------+--------------------------------------------------+------------------------------------------------+-------+-----------+------------
+ ops module override | 42501 Access denied: module payments is required | 42501 Access denied: module quotes is required |     0 | ok rows=0 | ok rows=0
+
+ set_config 
+------------
+ 
+
+RESET
+=== H2 owner and accountant: staff functions (review-1 D, SEC1-08) and costs
+SET
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222221
+
+  who  | costs | audit_rows |    self_change    |         bad_role         |      fourteen_modules       |       unknown_module        
+-------+-------+------------+-------------------+--------------------------+-----------------------------+-----------------------------
+ owner |     6 |       1904 | 42501 self_change | P0001 bad_payload | role | P0001 bad_payload | modules | P0001 bad_payload | modules
+
+ fn_set_user_access 
+--------------------
+ 
+
+RESET
+               check               |          modules           
+-----------------------------------+----------------------------
+ ops modules after duplicate grant | {dashboard,orders,samples}
+
+UPDATE 1
+SET
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222222
+
+       who        | costs |       make_owner       | switch_off_owner 
+------------------+-------+------------------------+------------------
+ accountant+users |     6 | 42501 role_not_allowed | P0001 last_owner
+
+RESET
+=== H3 SEC1-01: switched-off user sees only its own profile
+UPDATE 1
+SET
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222224
+
+ profiles_visible | own_active | buyers | orders |                     packed                     
+------------------+------------+--------+--------+------------------------------------------------
+                1 | f          |      0 |      0 | 42501 Access denied: module orders is required
+
+RESET
+=== H4 org-B owner against MDPL
+SET
+              set_config              
+--------------------------------------
+ bbbbbbbb-0000-4000-8000-0000000000a1
+
+ mdpl_orders | mdpl_payments | mdpl_audit | mdpl_profiles |    pay_mdpl     |    adv_mdpl     |                          sample_mdpl_buyer                           | switch_off_mdpl_sales | edit_mdpl_draft 
+-------------+---------------+------------+---------------+-----------------+-----------------+----------------------------------------------------------------------+-----------------------+-----------------
+           0 |             0 |          0 |             0 | 42501 not_found | 42501 not_found | 42501 new row violates row-level security policy for table "samples" | 42501 not_found       | 42501 not_found
+
+RESET
+ set_config | set_config 
+------------+------------
+            | 
+
+ROLLBACK

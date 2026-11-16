@@ -1,0 +1,203 @@
+{
+  "verdict": "fail",
+  "summary": "QA Gate 3 FAIL (narrow): no blocker, 1 high, 2 major, 3 minor, 1 info. Every automated check is green: typecheck 0, lint clean, tests 111/111, ci:tenant-check PASSED, build OK with 36 routes. The README local steps work literally on scratch mahua_qc: seeding twice gives identical results, then tests 111/111 and tenant-check PASS, and the DB was dropped. The demo-script SQL replay passes 224/0 (re-gate script 152/0), and Home numbers move as flows.md and the demo script say. Every Sprint C item is closed at the DB and render level with my own probes. The unauthenticated route sweep (37 routes) gives 307 to /login with no 5xx. Phone screenshots are taken; the toggle is 48px; Try as shows only with DEMO_MODE=true; .next/static has no password or demo emails. Three things remain. G3-01: re-seeding after a rehearsal does not reset the demo story as the README promises (tested workaround in the checklist). G3-02 and G3-03: Plant still sees money words on the Buyers list ('₹0 · Paid') and in Home To do ('Balance $18,900 due'). Web login and signed-in screens are blocked until hosted credentials arrive; docs/qa/credentials-day-checklist.md is the runbook for that day.",
+  "checks_run": [
+    {
+      "check": "npm run typecheck",
+      "result": "pass",
+      "output_tail": "> tsc --noEmit\nEXIT=0"
+    },
+    {
+      "check": "npm run lint",
+      "result": "pass",
+      "output_tail": "✔ No ESLint warnings or errors\nEXIT=0"
+    },
+    {
+      "check": "npm test (onion_crm)",
+      "result": "pass",
+      "output_tail": "Test Files  5 passed (5)\n     Tests  111 passed (111)\nEXIT=0"
+    },
+    {
+      "check": "npm run ci:tenant-check (onion_crm)",
+      "result": "pass",
+      "output_tail": "✅ CI Tenant Check PASSED: ... PUBLIC / anon execute no function; every function a policy, view or app RPC needs is executable by authenticated; new functions are granted to nobody by default.\nEXIT=0"
+    },
+    {
+      "check": "npx next build (route list)",
+      "result": "pass",
+      "output_tail": "✓ Compiled successfully; ✓ Generating static pages (22/22); 36 app routes incl. /payments/[id] 2.33 kB, /payments/[id]/print 3.01 kB; Middleware 56.7 kB; EXIT=0"
+    },
+    {
+      "check": "README 'Local database only' on scratch mahua_qc, seed twice, test, tenant-check, drop",
+      "result": "pass",
+      "output_tail": "run1/run2 Seed completed. EXIT=0; diff run1 run2: IDENTICAL; SEED STORY OK (2 / 1 / 1 / 511875 + 18900 / 1 late / 5 to do); Tests 111 passed (111); CI Tenant Check PASSED; schema fingerprint = onion_crm; dropped mahua_qc; mahua_qc* databases remaining: 0"
+    },
+    {
+      "check": "Re-seed resets demo story after a committed rehearsal (README/hosted claim)",
+      "result": "fail",
+      "output_tail": "after re-seed: SEED STORY MISMATCH [[\"orders_in_production\",1],[\"money_due_usd\",18900]]; next codes INQ-0012/ORD-0005; with demo-reset.sql then seed: SEED STORY OK, next INQ-0011"
+    },
+    {
+      "check": "docker-compose config",
+      "result": "pass",
+      "output_tail": "docker-compose config -q EXIT=0 (docker compose v2 plugin not installed here; README gives docker-compose fallback)"
+    },
+    {
+      "check": "Hosted 'Run the demo in 5 commands' review vs package.json/.env.example/hosted-supabase.md",
+      "result": "pass",
+      "output_tail": "commands and env lines consistent; DEMO_MODE/DEMO_PASSWORD server-only; no password in docs; notes G3-01 (reset claim) and G3-06 (phone cannot open localhost)"
+    },
+    {
+      "check": "Run hosted demo end to end",
+      "result": "blocked",
+      "output_tail": "no hosted Supabase credentials; runbook in docs/qa/credentials-day-checklist.md"
+    },
+    {
+      "check": "Demo-script replay by SQL, gate-3 script, one rolled-back transaction (onion_crm)",
+      "result": "pass",
+      "output_tail": "ROLLED BACK. 224 pass, 0 fail"
+    },
+    {
+      "check": "Sprint B re-gate demo-flow script",
+      "result": "pass",
+      "output_tail": "ROLLED BACK. 152 pass, 0 fail"
+    },
+    {
+      "check": "Sprint B original demo-flow script",
+      "result": "pass",
+      "output_tail": "ROLLED BACK. 108 pass, 3 fail (stale expectations; all 3 attacks still refused: no_items / currency switch below_floor_price / ops buyer UPDATE rows=0)"
+    },
+    {
+      "check": "Home numbers along demo script (committed rehearsal on scratch)",
+      "result": "pass",
+      "output_tail": "start 2/1/1/511875+18900/1 late/5; end new 2, waiting 1, in production 2, usd due 38892, papers 0, followups_today 4 after Done"
+    },
+    {
+      "check": "Seed story intact on onion_crm after all probes",
+      "result": "pass",
+      "output_tail": "owner v_home_kpis 2/1/1/511875.00/18900.00/1/5 - SEED STORY OK"
+    },
+    {
+      "check": "Sprint C items A6-A12, G2-06/07/10/13, F2-F6, SEC1-07/08/12, favicon (own probes)",
+      "result": "pass",
+      "output_tail": "all closed at DB/render level; A6 UI gaps G3-02/G3-03; logic-gate3: 9 pass, 0 fail"
+    },
+    {
+      "check": "A11 bundle scan .next/static",
+      "result": "pass",
+      "output_tail": ".next/static: 95 files; DEMO_PASSWORD value 0, DemoPass123! 0, mahuvacrm.com 0, DEMO_PASSWORD 0, NEXT_PUBLIC_DEMO_MODE 0, SUPABASE_SERVICE_ROLE_KEY 0 (only .next/cache webpack packs hold the old string: G3-07)"
+    },
+    {
+      "check": "A11 Try-as server action direct POST",
+      "result": "pass",
+      "output_tail": "3140 DEMO_MODE=true owner -> msg.error.offline, superadmin -> msg.err.bad_payload; 3141 false and 3142 '' -> msg.access_denied_title"
+    },
+    {
+      "check": "Unauthenticated route sweep, next start :3140",
+      "result": "pass",
+      "output_tail": "37 routes first=307 -> /login, final=200, 0 x 5xx (incl. /payments/<id> and /payments/<id>/print); /no-such-page 404; /favicon.ico 200 image/x-icon 379B"
+    },
+    {
+      "check": "Phone screenshots 390x844 + toggle height + Try-as on/off",
+      "result": "pass",
+      "output_tail": "login-en, login-gu (4 Try-as 72px), login-demo-off (0 Try-as), not-found-en/gu; toggle segments h 48; horizontalScroll false; rawKeys []; servers stopped (0 listeners)"
+    },
+    {
+      "check": "Jargon / label-key / tap-target audit of 37 Sprint C files",
+      "result": "pass",
+      "output_tail": "literal key uses: 415; missing keys: 0; keys without Gujarati: 0; placeholder mismatches: 0; 1 jargon hit is code; 1 hard-coded 'Packing list' on English export print; 2 size=sm inside >=64px rows (allowed)"
+    },
+    {
+      "check": "Web login, signed-in screens, receipt view as user, stepper dates on screen",
+      "result": "blocked",
+      "output_tail": "no Supabase stack / hosted credentials"
+    }
+  ],
+  "findings": [
+    {
+      "id": "G3-01",
+      "severity": "high",
+      "owner": "dev1",
+      "co_owners": [],
+      "file_ref": "README.md:37; docs/setup/hosted-supabase.md:87-96; scripts/seed.ts",
+      "problem": "README and hosted guide say `npm run db:seed` resets the demo story to day one; it does not. After one committed demo-script rehearsal plus re-seed: Home 2 orders in production (expect 1), $38,892 due (expect $18,900), 9 pending follow-ups (expect 8), and next codes INQ-0012 / SMP-0005 / ORD-0005 / QTN-2627-0006 / REC-2627-0006, so every code in the demo script is wrong on the second run.",
+      "fix": "Make the seed reset the demo org: before the seed files, delete MDPL rows whose ids are not the fixed seed ids and set entity_code_counters / doc_counters back (QA-tested draft: docs/qa/sprint-c/gate-3-evidence/demo-reset.sql), or ship it as `npm run db:reset-demo` and correct both docs. Re-prove with rehearsal-commit.cjs + re-seed -> SEED STORY OK and next INQ-0011."
+    },
+    {
+      "id": "G3-02",
+      "severity": "major",
+      "owner": "dev1",
+      "co_owners": [],
+      "file_ref": "src/app/(dashboard)/buyers/page.tsx:125-134",
+      "problem": "After A6 v_money_due is empty for Plant, so the buyers list shows every buyer to Plant as '₹0' with a green 'Paid' pill, including Al-Barakah, which is $18,900 late. Wrong money information on a Plant screen.",
+      "fix": "Hide the due fact, the money pill and the money sort when profile.role === 'operations', as buyers/[id]/page.tsx:45 already does."
+    },
+    {
+      "id": "G3-03",
+      "severity": "major",
+      "owner": "dev3",
+      "co_owners": [
+        "dev1"
+      ],
+      "file_ref": "supabase/migrations/0006_orders_dispatch_payments.sql:342,591; supabase/seed/02_inquiries.sql:117; src/app/(dashboard)/page.tsx:55-59",
+      "problem": "Plant Home 'To do today' shows 'Balance $18,900 due · 6 days late' (and 'Balance $19,992 due' after dispatch); ops can read advance/balance notes via follow_ups. The demo shows this at 3:25, where the message is that Plant sees only what to pack. A6 says no Plant screen reads money.",
+      "fix": "(Lead to confirm.) dev3: 0006 definers write advance/balance reminders with entity_type='payment' (entity_id = order id), so Home's module filter hides them without the payments module and ENTITY_PATH still opens the order. dev1: seed 02 'Balance $18,900 due' row -> entity_type 'payment'; follow_ups SELECT adds (entity_type <> 'payment' OR fn_user_role() IS DISTINCT FROM 'operations'). The definers' mark-done already matches IN ('order','payment')."
+    },
+    {
+      "id": "G3-04",
+      "severity": "minor",
+      "owner": "dev3",
+      "co_owners": [],
+      "file_ref": "src/app/login/login-form.tsx:184",
+      "problem": "At 390px the English Try-as button reads 'Accou...' (truncate, text-lg, icon + padding in a half-width tile); the word is cut on the first screen.",
+      "fix": "Let the label wrap or use text-base on narrow screens (or icon above word); recheck at 360px."
+    },
+    {
+      "id": "G3-05",
+      "severity": "minor",
+      "owner": "dev3",
+      "co_owners": [],
+      "file_ref": "supabase/migrations/0006_orders_dispatch_payments.sql:685-724",
+      "problem": "fn_dispatch_delivered accepts a future delivered date (probe: 30 days ahead), and step_dates.delivered takes it, so the stepper would show a future Delivered date. The A8 future-date rule covers payments only.",
+      "fix": "Raise bad_payload (DETAIL delivered_on) when p_delivered_on > CURRENT_DATE and map it to a plain en/gu message."
+    },
+    {
+      "id": "G3-06",
+      "severity": "minor",
+      "owner": "dev1",
+      "co_owners": [],
+      "file_ref": "README.md:40",
+      "problem": "The README says to open http://localhost:3000 on the same computer, but the demo script runs Owner, Sales and Plant on an Android phone, which cannot open localhost. There is no LAN-address step.",
+      "fix": "Add: on the phone open http://<laptop Wi-Fi address>:3000 (same Wi-Fi, allow Node through the firewall). Already in credentials-day checklist C3."
+    },
+    {
+      "id": "G3-07",
+      "severity": "info",
+      "owner": "dev3",
+      "co_owners": [],
+      "file_ref": ".next/cache/webpack/*",
+      "problem": "Served output is clean, but 11 webpack cache packs still contain the old 'DemoPass123!' string from earlier builds. They are not served and would leak only if the folder is zipped and shared.",
+      "fix": "Delete .next/cache before sharing the folder; never use DemoPass123! as hosted DEMO_PASSWORD (checklist A3, H)."
+    }
+  ],
+  "blocked_waiting_for_credentials": [
+    "Web login (typed and Try as) against hosted Supabase",
+    "Signed-in screens per role: Home tiles, Plant variant, money list, receipt view /payments/[id] and print",
+    "Order stepper and packing-card dates on screen (A7 UI)",
+    "Hosted npm run db:seed, ci:tenant-check and BYPASSRLS check of the function owner",
+    "Anonymous REST/RPC probes against the hosted API",
+    "README 'Run the demo in 5 commands' end to end"
+  ],
+  "usability_notes": [
+    "Login on a phone is good: 4 Try-as tiles 72px with icon + one word, 48px toggle, no horizontal scroll, no raw keys, plain 'Please fill this' / 'આ ભરો' under each empty field.",
+    "Without Supabase (or with wrong keys) Try as says 'No internet. Try again.'; the credentials-day checklist explains it really means 'cannot reach Supabase'.",
+    "Plant is the user most hurt by stray money words (G3-02, G3-03): the Plant user is meant to see only what to pack.",
+    "Receipt print and export documents are English only; right for buyers, screens stay bilingual.",
+    "Lead docs (not edited): demo-script.md:5 says NEXT_PUBLIC_DEMO_MODE (retired by A11); demo-script.md:56 'Reset between demos' has no command (link to the G3-01 fix); labels.md wa.dispatched lacks {date}; screens.md 1 NEXT_PUBLIC_DEMO_MODE; screens.md 6 conflicts with A6; contracts section 4 lacks fn_sample_create and fn_order_advance_waiting; 3.9 should record A6; 2.3 template should revoke from PUBLIC, anon.",
+    "Hosted readiness (security sign-off): 0005/0006 definers and the 0007 audit scrub need the function owner to have BYPASSRLS on Supabase; checklist step B4 checks it.",
+    "Running npm test against the hosted DB writes and removes test orgs/users in auth.users; optional in the checklist (B7).",
+    "docs/qa/sprint-b/gate-2-evidence/demo-flow.cjs has 3 stale expectations (attacks still refused); the gate-3 and re-gate scripts are current.",
+    "Credentials-day runbook: docs/qa/credentials-day-checklist.md (fill .env.local, db:seed, BYPASSRLS check, ci:tenant-check vs hosted, phone via LAN IP, per-role checks, 23-step rehearsal with screenshot names, reset, post-demo)."
+  ],
+  "report_path": "/home/raish/raish/mahua-crm/docs/qa/gate-3.md"
+}

@@ -1,0 +1,265 @@
+{
+  "verdict": "fail",
+  "summary": "Security review 2 (Sprint B). No cross-tenant holes: all 11 definers raise 42501 not_found for another org's rows, the app.current_org and override GUCs are ignored for web roles, and orders, order_items, dispatches and payments refuse direct writes even from the owner. Module and role walls hold, and dispatch, payment and checklist validation is correct. The seed story is intact (2 / 1 / 1 / Rs 5,11,875 + $18,900 / about Rs 21,04,200 / 1 late / 5 to do). ci:tenant-check, npm test (76/76), typecheck and lint all pass. The gate is red on 3 high findings: (1) the floor-price guard can be bypassed by a currency with no price list, by switching currency after the items are saved, or by a foreign product; a Rs 1/kg INR quote with 0% GST was sent and accepted into ORD-0004 by sales. (2) Client-supplied INQ/BUY/SMP/QTN codes are trusted, so one user can permanently block new inquiries, buyers, samples or quotes for the whole org. (3) Plant can create and edit buyers through the action and PostgREST, which flipped ORD-0002 from Late to Waiting. There is also a major open redirect on /buyers/new?next=, 2 minor findings and 5 info notes.",
+  "checks_run": [
+    {
+      "check": "npm run ci:tenant-check",
+      "result": "pass",
+      "output_tail": "CI Tenant Check PASSED: every public table has org_id, an index, ENABLE + FORCE RLS and an org policy; every view is security_invoker; web roles hold no TRUNCATE / REFERENCES / TRIGGER; all SECURITY DEFINER functions are allowlisted; number generators are locked."
+    },
+    {
+      "check": "npm test",
+      "result": "pass",
+      "output_tail": "orders-payments 22, quotes 16, security-fixes 18, inquiries 15, rls-tenant-isolation 5; Test Files 5 passed (5); Tests 76 passed (76)"
+    },
+    {
+      "check": "npm run typecheck",
+      "result": "pass",
+      "output_tail": "tsc --noEmit, exit 0, no output"
+    },
+    {
+      "check": "npm run lint",
+      "result": "pass",
+      "output_tail": "No ESLint warnings or errors (exit 0)"
+    },
+    {
+      "check": "Catalog: RLS, privileges, definers, views on 9 new tables",
+      "result": "pass",
+      "output_tail": "all rls t / force_rls t; orders, order_items, dispatches, payments INS/UPD/DEL f f f; inquiries, follow_ups, samples, quotations upd f (column grants only); 26 definers search_path=public; generators and trigger fns not executable by authenticated; 7 views {security_invoker=true}; no GRANT ALL in 0004-0006"
+    },
+    {
+      "check": "SQL: MDPL sales -> org B rows through all 11 definers (+ owner fn_payment_record)",
+      "result": "pass",
+      "output_tail": "12 x ERROR 42501: not_found; org B afterwards: inqb talking | qb sent | ordb ready | coo done false | fub f"
+    },
+    {
+      "check": "SQL: direct SELECT of org B rows and views as sales",
+      "result": "pass",
+      "output_tail": "inq 0 | qtn 0 | qi 0 | ord 0 | oi 0 | dsp 0 | pay 0 | fu 0 | smp 0 | vob 0 | kpis_rows 1 | vft 0"
+    },
+    {
+      "check": "SQL: set_config app.current_org / app.override_module_check as web role",
+      "result": "pass",
+      "output_tail": "current_org_after_override 11111111-... | orders_visible 3 | orgB_orders_visible 0; ops with override: 42501 Access denied: module quotes is required / module payments is required"
+    },
+    {
+      "check": "SQL: role walls (ops tick phyto, untick, delivered, cancel; sales payment)",
+      "result": "pass",
+      "output_tail": "4 x 42501 role_not_allowed; sales fn_payment_record -> 42501 Access denied: module payments is required"
+    },
+    {
+      "check": "SQL: direct writes on status/total columns (sales) and on function-only tables (owner)",
+      "result": "pass",
+      "output_tail": "quotations status/total/subtotal -> 42501 permission denied; sent quote valid_till UPDATE 0; inquiries/samples/follow_ups status -> permission denied; orders/order_items/dispatches/payments INSERT/UPDATE/DELETE + TRUNCATE -> 12 x permission denied"
+    },
+    {
+      "check": "SQL: floor guard (rate below floor, UPDATE rate, MT vs kg, forged floor_price_at_time)",
+      "result": "pass",
+      "output_tail": "below_floor_price DETAIL 125.00; MT 100000 / MT 124 -> DETAIL 125000.00; floor_price_at_time=1 overwritten (140.00 | 125.00)"
+    },
+    {
+      "check": "SQL: floor guard via other currency / currency switch / foreign product",
+      "result": "fail",
+      "output_tail": "EUR QTN-2627-0005 sent at 0.01/kg; EUR->INR QTN-2627-0006 sent INR 1000.00 gst 0.00 floor null -> ORD-0004 INR 1000.00; USD->INR switch: sent at rate 2.00 floor 1.55 gst 0.00; foreign product floor null leaked_foreign_gst 12.00"
+    },
+    {
+      "check": "SQL: fn_order_dispatch validation",
+      "result": "pass",
+      "output_tail": "qty 5000.01 > ordered / 0 / -10 -> bad_payload qty_kg; bags -1 -> bad_payload bags; mode ship / blank vehicle / no port -> bad_payload; second dispatch -> invalid_transition dispatched -> dispatched"
+    },
+    {
+      "check": "SQL: fn_payment_record validation",
+      "result": "pass",
+      "output_tail": "amount 0/-100/NULL -> bad_payload amount; mode crypto -> bad_payload mode; USD w/o INR -> bad_payload amount_inr; fx -1 -> bad_payload fx_rate; order of org B -> 42501 not_found; 10x overpayment dated +365 accepted (info SEC2-08)"
+    },
+    {
+      "check": "SQL: fn_dispatch_tick payload",
+      "result": "pass",
+      "output_tail": "key evil / NULL / injected json -> bad_payload key; done NULL -> bad_payload done; truck -> bad_payload mode; blank BL -> bl_required; checklist still 8 keys"
+    },
+    {
+      "check": "SQL: fn_quote_accept twice / bad pct / draft",
+      "result": "pass",
+      "output_tail": "pct 101/-1 -> bad_payload advance_pct; draft -> invalid_transition; first accept t; second -> invalid_transition accepted -> accepted; orders_for_qtn3 1"
+    },
+    {
+      "check": "SQL: audit_log visibility for orders/payments",
+      "result": "pass",
+      "output_tail": "owner 21, accountant 21 (holds audit), sales 0, ops 0, owner of org B on MDPL audit 0"
+    },
+    {
+      "check": "SQL: client-supplied codes (INQ/BUY/SMP/QTN)",
+      "result": "fail",
+      "output_tail": "INSERT code INQ-0012 ok; next 3 inserts -> 23505 uq_inquiries_org_code; inq_counter stays 11; same for BUY (via UPDATE buyer_code), SMP, QTN; quote_no PI-2627-0099 accepted"
+    },
+    {
+      "check": "SQL: Plant (operations) writes buyers",
+      "result": "fail",
+      "output_tail": "UPDATE buyers credit_period_days 365 -> BUY-0003 | 365; INSERT buyers -> BUY-0005; UPDATE buyer_contacts phone ok; ORD-0002 money_status due (was overdue)"
+    },
+    {
+      "check": "SQL: state-machine columns on INSERT",
+      "result": "fail",
+      "output_tail": "INQ-0011 inserted as won; SMP-0004 inserted as approved; follow_up done t done_by owner; quotation total 999999.00 created_by owner"
+    },
+    {
+      "check": "SQL: cross-org FK references",
+      "result": "fail",
+      "output_tail": "quote with org B buyer + inquiry -> QTN-2627-0009; random uuid -> 23503 (existence oracle); sample with org B inquiry + fn_sample_set_status sent ok (org B inquiry unchanged)"
+    },
+    {
+      "check": "Code: requireModule on every page incl. (print)",
+      "result": "pass",
+      "output_tail": "28 pages gated with the right module; (print)/orders/[id]/print/[doc] also blocks operations except slip; (print)/layout.tsx requireAuth"
+    },
+    {
+      "check": "Code: server actions (Zod, hasModule, RPC/org lock, mapDbError, no admin client, no dangerouslySetInnerHTML, wa.me via phone.ts)",
+      "result": "pass",
+      "output_tail": "all 7 action files: safeParse(unknown) -> hasModule -> rpc or org-locked query -> mapDbError; no raw error text; no client org_id; admin.ts not imported in src/app; wa.me/tel only in src/lib/phone.ts with encodeURIComponent"
+    },
+    {
+      "check": "Code: catalog cost only for owner/accountant; print pages read own business_settings",
+      "result": "pass",
+      "output_tail": "catalog/page.tsx:28 showCost owner|accountant, v_product_costs only then; print pages .eq('org_id', profile.org_id); no floor/cost on papers"
+    },
+    {
+      "check": "Code: redirects only to internal paths",
+      "result": "fail",
+      "output_tail": "\"/\\\\evil.com\" passes check: true -> https://evil.com/; \"/\\t/evil.com\" passes check: true -> https://evil.com/; Next 14.2.20 navigateReducer -> handleExternalUrl"
+    },
+    {
+      "check": "Seed story intact after all probes",
+      "result": "pass",
+      "output_tail": "inq=10 fu=14 smp=3 qtn=4 qi=4 ord=3 oi=3 dsp=2 pay=4 buy=4 org=1; counters BUY=4 INQ=10 ORD=3 SMP=3 / INV=2 PI=3 QTN=4 REC=4 SDN=2; owner v_home_kpis 2|1|1|511875.00|18900.00|2104200.00|1|5|1"
+    },
+    {
+      "check": "Logged-in walkthrough over HTTP (server actions, open redirect click-through)",
+      "result": "blocked",
+      "output_tail": "No Supabase stack and no hosted credentials; verified by code reading, Next router source and SQL impersonation only"
+    }
+  ],
+  "findings": [
+    {
+      "id": "SEC2-01",
+      "severity": "high",
+      "owner": "dev2",
+      "co_owners": [],
+      "file_ref": "supabase/migrations/0005_samples_quotes.sql:236-266,445-456; src/app/(dashboard)/quotes/actions.ts:28,104-123; src/components/quotes/quote-form.tsx:212",
+      "problem": "The floor guard is bypassed three ways. (A) Any 3-letter currency with no price list (EUR) gives floor NULL; the quote form offers the buyer's preferred_currency. (B) quotations.currency can be updated after the items are saved without re-running the guard, and updateQuoteAction updates the header before the items, so stale floor and GST survive. (C) A product from another org has no floor, and its gst_rate leaks. Proven as sales: an EUR quote sent at 0.01/kg; EUR->INR sent at Rs 1/kg with 0% GST and accepted into ORD-0004 (Rs 1,000); USD->INR sent at Rs 2/kg against a stored floor of 1.55.",
+      "fix": "In fn_quote_item_guard: look up the product with p.org_id = v_quote.org_id (else bad_payload). When no floor is found and fn_user_role() IS NOT NULL AND <> 'owner', raise below_floor_price DETAIL 'no_price'. In fn_quote_send, before the floor re-check, run UPDATE quotation_items SET updated_at = now() WHERE quotation_id = v_row.id so the guard re-derives floor, GST and amount for the current currency. In quote-form, offer only currencies that have a price (INR/USD). In updateQuoteAction, replace the items before changing currency (or use one RPC). Add Vitest cases for EUR, currency switch and foreign product."
+    },
+    {
+      "id": "SEC2-02",
+      "severity": "high",
+      "owner": "dev2",
+      "co_owners": [
+        "dev1"
+      ],
+      "file_ref": "supabase/migrations/0003_security_fixes.sql:163,189,385 (full UPDATE grant incl. buyers.buyer_code); supabase/migrations/0004_inquiries_followups.sql:71-73,149-151; supabase/migrations/0005_samples_quotes.sql:65-67,130-132",
+      "problem": "fn_assign_code and fn_assign_doc_no keep any code the caller sends, and buyers.buyer_code can be updated. A user who pre-claims the next INQ/BUY/SMP/QTN number makes every later insert fail with 23505. The counter increment rolls back each time, so it stays stuck, and all users see 'Could not save' until an admin intervenes. Forged numbers such as quote_no 'PI-2627-0099' are also accepted.",
+      "fix": "0003 (dev2): in both trigger functions compute v_caller as in fn_current_org and assign the generated number when the column is NULL OR v_caller IN ('authenticated','anon','authenticator'). 0004 (dev1): REVOKE UPDATE ON buyers FROM authenticated; GRANT UPDATE on every column except id, org_id, buyer_code, created_by, created_at. Add a Vitest case: a supplied code is replaced, and two inserts in a row both succeed."
+    },
+    {
+      "id": "SEC2-03",
+      "severity": "high",
+      "owner": "dev1",
+      "co_owners": [
+        "dev2"
+      ],
+      "file_ref": "src/app/(dashboard)/buyers/actions.ts:123,169; src/app/(dashboard)/inquiries/actions.ts:118; supabase/migrations/0003_security_fixes.sql:427-428",
+      "problem": "screens.md 0.1 makes Plant read-only on buyers, but createBuyerAction and updateBuyerAction check only hasModule('buyers'), and the buyers/buyer_contacts policies are module-only. Plant holds 'buyers'. As ops: credit_period_days changed to 365, ORD-0002 flipped from Late to Waiting, a buyer was created (BUY-0005), and the primary phone used for WhatsApp reminders was changed.",
+      "fix": "0003 policy loop (dev2): give buyers and buyer_contacts writes AND fn_user_role() IN ('owner','accountant','sales'), like amendment A1. Actions (dev1): if (profile!.role === 'operations') return ACCESS_DENIED in createBuyerAction, updateBuyerAction and the inquiry '+ New buyer' shortcut. Add a test: ops UPDATE on buyers affects 0 rows."
+    },
+    {
+      "id": "SEC2-04",
+      "severity": "major",
+      "owner": "dev1",
+      "co_owners": [],
+      "file_ref": "src/app/(dashboard)/buyers/new/page.tsx:38; src/components/buyers/buyer-form.tsx:120",
+      "problem": "Open redirect. ?next=/%5Cevil.example (or /<tab>/evil.example) passes startsWith('/') && !startsWith('//'), and after Save router.push resolves it to https://evil.example (Next 14.2.20 isExternalURL -> handleExternalUrl). This is a phishing path to a fake login page for the low-literacy users.",
+      "fix": "Add safeInternalPath(p): new URL(p, 'https://app.invalid'), accept only when origin === 'https://app.invalid', and return pathname + search. Use it in buyers/new/page.tsx and again in buyer-form.tsx before router.push."
+    },
+    {
+      "id": "SEC2-05",
+      "severity": "minor",
+      "owner": "dev1",
+      "co_owners": [
+        "dev2"
+      ],
+      "file_ref": "supabase/migrations/0004_inquiries_followups.sql:58-60,129-131; supabase/migrations/0005_samples_quotes.sql:47-49,112-114",
+      "problem": "The INSERT policies check only org and module, so the status machines and attribution can be skipped at insert. As sales: an inquiry inserted as won, a sample as approved, a follow-up done with done_by and created_by = the owner, and a quotation with total 999999 and created_by = the owner.",
+      "fix": "Pin the initial state in WITH CHECK: inquiries status='new' AND lost_reason IS NULL AND closed_at IS NULL; samples status='to_send' AND decided_on IS NULL; follow_ups done_by IS NULL with either (done=false) or (due_on IS NULL AND done=true); quotations sent_at/decided_at/reject_reason IS NULL. Add (created_by IS NULL OR created_by = auth.uid()) to all four, and recompute or forbid quotation totals on INSERT."
+    },
+    {
+      "id": "SEC2-06",
+      "severity": "minor",
+      "owner": "dev2",
+      "co_owners": [
+        "dev1"
+      ],
+      "file_ref": "supabase/migrations/0005_samples_quotes.sql:20-22,81-82,146-147,236; supabase/migrations/0004_inquiries_followups.sql:25,28,38,89",
+      "problem": "The FK columns buyer_id, inquiry_id, product_id, packaging_type_id and assigned_to are not checked for org. As MDPL sales, a quote and a sample were saved that point at org B's buyer and inquiry (QTN-2627-0009, SMP-0005). A random UUID gives 23503, so this is an existence oracle, and the guard leaked org B's gst_rate 12.00. No foreign rows were readable through views or definers.",
+      "fix": "Add a SECURITY DEFINER BEFORE INSERT OR UPDATE trigger fn_same_org_refs() on inquiries, follow_ups, samples, quotations and quotation_items that raises bad_payload when a referenced row's org_id differs (and add it to the CI allowlist). Alternatively use composite FKs (org_id, x_id) -> parent(org_id, id) with UNIQUE (org_id, id) on the parents."
+    },
+    {
+      "id": "SEC2-07",
+      "severity": "info",
+      "owner": "dev2",
+      "co_owners": [],
+      "file_ref": "supabase/migrations/0005_samples_quotes.sql:264,445",
+      "problem": "fn_user_role() <> 'owner' is NULL-unsafe: a NULL role skips the floor check. Today only postgres gets NULL, but the pattern differs from 0006 (COALESCE).",
+      "fix": "Use COALESCE(fn_user_role(), '') <> 'owner', or fn_user_role() IS DISTINCT FROM 'owner', after deciding how seeds should behave."
+    },
+    {
+      "id": "SEC2-08",
+      "severity": "info",
+      "owner": "dev3",
+      "co_owners": [],
+      "file_ref": "supabase/migrations/0006_orders_dispatch_payments.sql:748-750,772",
+      "problem": "fn_payment_record accepts any amount up to the column limit and any received_on. A 10x overpayment dated +365 days was accepted and marked ORD-0003 paid. The UI has an over-payment confirm and limits the date to today or earlier; the DB does not.",
+      "fix": "Raise bad_payload when p_received_on > CURRENT_DATE, and for non-owners when p_amount > due * 1.1 (or require an explicit p_allow_over flag)."
+    },
+    {
+      "id": "SEC2-09",
+      "severity": "info",
+      "owner": "dev2",
+      "co_owners": [
+        "dev1"
+      ],
+      "file_ref": "supabase/migrations/0004_inquiries_followups.sql:232-233,272-273; supabase/migrations/0005_samples_quotes.sql:406-407,478-479,521-522; scripts/ci-tenant-check.ts:49",
+      "problem": "0006 revokes EXECUTE from anon on its definers, but 0004 and 0005 do not. On hosted Supabase, default privileges grant EXECUTE to anon. There is no exploit (fn_current_org NULL -> not_found / access denied). The CI check covers anon only for the number generators.",
+      "fix": "Copy 0006's guarded REVOKE ... FROM anon block into 0004 and 0005, and extend ci-tenant-check to fail when any allowlisted definer is executable by anon."
+    },
+    {
+      "id": "SEC2-10",
+      "severity": "info",
+      "owner": "dev3",
+      "co_owners": [
+        "dev1"
+      ],
+      "file_ref": "supabase/migrations/0006_orders_dispatch_payments.sql:233-235; supabase/migrations/0004_inquiries_followups.sql:126-128",
+      "problem": "Reads are org-wide by contract (2.2 / 3.9). Plant can read inquiries, follow-up notes, payments and the money views through the API (payments 4, money_due_about_inr 2104200.00), although the screens hide money from Plant.",
+      "fix": "None required by the contract. If money must be hidden from Plant, add fn_user_role() <> 'operations' to payments_select and filter the money views; otherwise record it as an accepted risk."
+    },
+    {
+      "id": "SEC2-11",
+      "severity": "info",
+      "owner": "dev1",
+      "co_owners": [
+        "dev2"
+      ],
+      "file_ref": "supabase/migrations/0004_inquiries_followups.sql:137-139; supabase/migrations/0005_samples_quotes.sql:56-57",
+      "problem": "The module-template DELETE lets sales delete system reminders ('Balance ... due', 'Advance ... due'; DELETE 3) and approved samples (DELETE 1), which hides money chasing from To do.",
+      "fix": "Limit DELETE on follow_ups made by functions (e.g. entity_type IN ('order','payment')) and on samples with status <> 'to_send' to the owner."
+    }
+  ],
+  "blocked_waiting_for_credentials": [
+    "Hosted Supabase URL and anon/service keys (or a local Supabase stack): needed for a logged-in HTTP walkthrough of the Sprint B pages and server actions, and to click through the /buyers/new?next= open redirect in a browser. These were verified by code, the Next router source and SQL impersonation only."
+  ],
+  "usability_notes": [
+    "SEC2-02 lands on the users as a generic 'Could not save. Try again.' that never goes away; a user with basic schooling cannot tell that retrying is pointless and will keep tapping Save.",
+    "SEC2-01(A): for a buyer with preferred currency EUR, the quote form shows an EUR chip and no floor line, so sales gets no below-floor warning at all.",
+    "Good: the Money received form has an over-payment confirm and limits the date to today or earlier; Plant's buyer pages hide Edit and New (the server-side wall is missing, SEC2-03)."
+  ],
+  "report_path": "docs/security/review-2.md"
+}

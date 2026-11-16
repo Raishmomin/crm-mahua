@@ -1,0 +1,26 @@
+# G3-01 re-proof 2026-11-16 17:24:54: commit one full demo-script run on scratch mahua_qc, then npm run db:seed:sql (README: 'Safe to run again: it resets the demo story to day one.')
+COMMITTED demo rehearsal on mahua_qc {"inq":"INQ-0011","ord":"ORD-0004 / PI-2627-0004","rec":"REC-2627-0005","sample":"SMP-0004","quote":"QTN-2627-0005"}
+== after rehearsal
+mahua_qc owner v_home_kpis {"new_inquiries":2,"quotes_waiting":1,"orders_in_production":2,"money_due_inr":"511875.00","money_due_usd":"38892.00","money_due_about_inr":"3788526.00","money_overdue_count":1,"followups_today":4,"papers_pending":0}
+mahua_qc SEED STORY MISMATCH [["orders_in_production",1],["money_due_usd",18900],["followups_today",5]]
+mahua_qc ops v_home_kpis {"new_inquiries":2,"quotes_waiting":1,"orders_in_production":2,"money_due_inr":"0.00","money_due_usd":"0.00","money_due_about_inr":"0.00","money_overdue_count":0,"followups_today":4,"papers_pending":0}
+mahua_qc counts {"buyers":4,"inquiries":11,"samples":4,"quotations":5,"quotation_items":5,"orders":4,"order_items":4,"dispatches":2,"payments":5,"follow_ups":17,"follow_ups_pending":8,"follow_ups_notes":6,"audit_cost_rows":0,"audit_bank_snapshots":0}
+mahua_qc next codes (rolled back) {"inq":"INQ-0012","smp":"SMP-0005","ord":"ORD-0005","buy":"BUY-0005","qtn":"QTN-2627-0006","pi":"PI-2627-0005","inv":"INV-2627-0003","sdn":"SDN-2627-0003","rec":"REC-2627-0006"}
+== npm run db:seed:sql (re-seed)
+Seed completed.
+== after re-seed
+mahua_qc owner v_home_kpis {"new_inquiries":2,"quotes_waiting":1,"orders_in_production":2,"money_due_inr":"511875.00","money_due_usd":"38892.00","money_due_about_inr":"3788526.00","money_overdue_count":1,"followups_today":5,"papers_pending":1}
+mahua_qc SEED STORY MISMATCH [["orders_in_production",1],["money_due_usd",18900]]
+mahua_qc ops v_home_kpis {"new_inquiries":2,"quotes_waiting":1,"orders_in_production":2,"money_due_inr":"0.00","money_due_usd":"0.00","money_due_about_inr":"0.00","money_overdue_count":0,"followups_today":5,"papers_pending":1}
+mahua_qc counts {"buyers":4,"inquiries":11,"samples":4,"quotations":5,"quotation_items":5,"orders":4,"order_items":4,"dispatches":2,"payments":5,"follow_ups":17,"follow_ups_pending":9,"follow_ups_notes":6,"audit_cost_rows":0,"audit_bank_snapshots":0}
+mahua_qc next codes (rolled back) {"inq":"INQ-0012","smp":"SMP-0005","ord":"ORD-0005","buy":"BUY-0005","qtn":"QTN-2627-0006","pi":"PI-2627-0005","inv":"INV-2627-0003","sdn":"SDN-2627-0003","rec":"REC-2627-0006"}
+# workaround: demo-reset.sql then npm run db:seed:sql
+demo-reset.sql: DELETE 1, DELETE 0, DELETE 1, DELETE 1, DELETE 1, DELETE 1, DELETE 1, DELETE 3, DELETE 1, DELETE 0, DELETE 0, UPDATE 4, UPDATE 5
+Seed completed.
+mahua_qc owner v_home_kpis {"new_inquiries":2,"quotes_waiting":1,"orders_in_production":1,"money_due_inr":"511875.00","money_due_usd":"18900.00","money_due_about_inr":"2104200.00","money_overdue_count":1,"followups_today":5,"papers_pending":1}
+mahua_qc SEED STORY OK (2 / 1 / 1 / 511875 + 18900 / 1 late / 5 to do)
+mahua_qc ops v_home_kpis {"new_inquiries":2,"quotes_waiting":1,"orders_in_production":1,"money_due_inr":"0.00","money_due_usd":"0.00","money_due_about_inr":"0.00","money_overdue_count":0,"followups_today":5,"papers_pending":1}
+mahua_qc counts {"buyers":4,"inquiries":10,"samples":3,"quotations":4,"quotation_items":4,"orders":3,"order_items":3,"dispatches":2,"payments":4,"follow_ups":14,"follow_ups_pending":8,"follow_ups_notes":6,"audit_cost_rows":0,"audit_bank_snapshots":0}
+mahua_qc next codes (rolled back) {"inq":"INQ-0011","smp":"SMP-0004","ord":"ORD-0004","buy":"BUY-0005","qtn":"QTN-2627-0005","pi":"PI-2627-0004","inv":"INV-2627-0003","sdn":"SDN-2627-0003","rec":"REC-2627-0005"}
+dropped mahua_qc
+mahua_qc* databases remaining: 0

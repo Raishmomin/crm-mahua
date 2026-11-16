@@ -1,0 +1,5 @@
+# port 3141 started with DEMO_MODE=false (process env beats .env.local)
+{"mode":"demo-off","lang":"en","status":200,"path":"/login","htmlLang":"en","title":"Mahuva CRM","h1":"Mahuva CRM","tryAsHeading":"absent","tryAsButtons":[],"langSegments":[{"text":"English","h":48,"w":148.4},{"text":"ગુજરાતી","h":48,"w":148.4}],"passwordIds":1,"formNoValidate":true,"bodyFontSize":"17px","bodyLineHeight":"25.5px","horizontalScroll":false,"rawKeys":[],"smallTargets":[],"faviconLinks":["/icon.svg?93c7f64c389e3b5b"]}
+screenshot login-demo-off.png
+{"mode":"demo-off","lang":"en","consoleErrors":[]}
+# port 3142 started with DEMO_MODE='' : 'Try as' on /login = 0

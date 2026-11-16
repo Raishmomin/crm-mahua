@@ -1,0 +1,22 @@
+
+> mahua-crm@1.0.0 db:seed:sql
+> tsx scripts/seed.ts
+
+Database: postgresql://postgres:****@127.0.0.1:5432/onion_crm
+Applying 8 migration(s)...
+ok   supabase/migrations/0000_auth_shim.sql (68 ms)
+ok   supabase/migrations/0001_core_system.sql (35 ms)
+ok   supabase/migrations/0002_catalog_and_buyers.sql (21 ms)
+ok   supabase/migrations/0003_security_fixes.sql (71 ms)
+ok   supabase/migrations/0004_inquiries_followups.sql (36 ms)
+ok   supabase/migrations/0005_samples_quotes.sql (55 ms)
+ok   supabase/migrations/0006_orders_dispatch_payments.sql (44 ms)
+ok   supabase/migrations/0007_hardening.sql (26 ms)
+Applying 5 seed file(s)...
+ok   supabase/seed/00_demo_reset.sql (16 ms)
+ok   supabase/seed/01_core.sql (317 ms)
+ok   supabase/seed/02_inquiries.sql (19 ms)
+ok   supabase/seed/03_samples_quotes.sql (39 ms)
+ok   supabase/seed/04_orders_money.sql (22 ms)
+Seed completed.
+EXIT=0

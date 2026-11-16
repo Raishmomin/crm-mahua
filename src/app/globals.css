@@ -20,10 +20,41 @@
   --border: 214.3 31.8% 91.4%;
   --input: 214.3 31.8% 91.4%;
   --ring: 158 64% 32%;
+  --font-gujarati: 'Noto Sans Gujarati';
+}
+
+/* 17px root: every Tailwind rem size scales from here (components.md section 1). */
+html {
+  font-size: 17px;
+  -webkit-text-size-adjust: 100%;
+}
+
+html[lang='gu'],
+html[lang='gu'] body {
+  /* Gujarati conjuncts need more leading; the body rule below would otherwise win (gate 1 F4). */
+  line-height: 1.6;
 }
 
 body {
   color: hsl(var(--foreground));
   background: hsl(var(--background));
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, var(--font-gujarati), 'Noto Sans Gujarati',
+    'Nirmala UI', Shruti, sans-serif;
+}
+
+/* Print pages: A4, hide toolbars. */
+@page {
+  size: A4;
+  margin: 14mm;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
 }

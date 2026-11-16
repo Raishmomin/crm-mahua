@@ -1,0 +1,108 @@
+{
+ "summary": "Dev-3 Sprint A finished. Fixed the typecheck breakage (old LABELS shape, missing icon-map/language-toggle) and completed the remaining shell, Home, login, Staff, My Company, print-layout and not-found work per docs/design. Shell: data-driven BottomNav (BAR_ORDER, 4 slots + More sheet with the rest, Staff, My Company, Language, Sign out), sidebar md+ only with 48px rows and plain words, header with company short name / help stub / (md+) language toggle, first name, job word, sign-out; (dashboard)/layout.tsx passes the cookie language through LangProvider, md:ml-64, pb-20, and renders an inactive login without a menu so /account-inactive cannot redirect-loop. Home rebuilt (greeting + date, KpiTiles from v_home_kpis, To do today from v_followups_today with PhoneActions + Done via home-actions.ts -> fn_follow_up_done, ?todo=all, three big buttons, Plant variant with Packing today from v_orders_in_production); every view read is guarded so a missing relation renders zeros/empty states. Login is a server page + client form (LangProvider, 48px fields, eye toggle, 2x2 Try-as only when NEXT_PUBLIC_DEMO_MODE=true, plain error copy). Staff is a ListCard list + change-access sheet (4 job buttons applying ROLE_PRESETS, login on/off, Change details tick list of the 10 shown modules, toast on { ok:false, message }). My Company is Company + Bank cards + More (export) + sticky Save; its action now returns { ok } | { ok:false, messageKey } and never throws. Print: (print)/layout.tsx (requireAuth, no shell, English) + src/components/print/{print-layout,print-toolbar,amount-words}. Label diff vs labels.md: 0 missing en / 0 missing gu. Jargon grep: only code identifiers and comments remain. Verified with real output: typecheck 0 errors, lint clean, next build OK, ci:tenant-check PASS, dev smoke on :3100 all green (login 200 with Try-as + lang=\"en\", / -> /login, 404 copy in en and gu), dev server stopped. npm test is 21/22 under default file parallelism because of a pre-existing harness race (both Dev-2 test files re-apply migrations concurrently; Dev-1 logged the same); the sequential run is 22/22.",
+ "files_changed": [
+  "/home/raish/raish/mahua-crm/src/components/shell/icon-map.ts",
+  "/home/raish/raish/mahua-crm/src/components/shell/language-toggle.tsx",
+  "/home/raish/raish/mahua-crm/src/components/shell/sign-out-button.tsx",
+  "/home/raish/raish/mahua-crm/src/components/shell/more-sheet.tsx",
+  "/home/raish/raish/mahua-crm/src/components/shell/bottom-nav.tsx",
+  "/home/raish/raish/mahua-crm/src/components/shell/sidebar.tsx",
+  "/home/raish/raish/mahua-crm/src/components/shell/header.tsx",
+  "/home/raish/raish/mahua-crm/src/components/shell/user-nav.tsx",
+  "/home/raish/raish/mahua-crm/src/components/home/todo-list.tsx",
+  "/home/raish/raish/mahua-crm/src/components/home/packing-today.tsx",
+  "/home/raish/raish/mahua-crm/src/components/print/print-layout.tsx",
+  "/home/raish/raish/mahua-crm/src/components/print/print-toolbar.tsx",
+  "/home/raish/raish/mahua-crm/src/components/print/amount-words.ts",
+  "/home/raish/raish/mahua-crm/src/app/(dashboard)/layout.tsx",
+  "/home/raish/raish/mahua-crm/src/app/(dashboard)/page.tsx",
+  "/home/raish/raish/mahua-crm/src/app/(dashboard)/home-actions.ts",
+  "/home/raish/raish/mahua-crm/src/app/(dashboard)/access-denied/page.tsx",
+  "/home/raish/raish/mahua-crm/src/app/(dashboard)/account-inactive/page.tsx",
+  "/home/raish/raish/mahua-crm/src/app/(dashboard)/users/page.tsx",
+  "/home/raish/raish/mahua-crm/src/app/(dashboard)/users/user-table.tsx",
+  "/home/raish/raish/mahua-crm/src/app/(dashboard)/users/error.tsx",
+  "/home/raish/raish/mahua-crm/src/app/(dashboard)/settings/page.tsx",
+  "/home/raish/raish/mahua-crm/src/app/(dashboard)/settings/settings-form.tsx",
+  "/home/raish/raish/mahua-crm/src/app/(dashboard)/settings/actions.ts",
+  "/home/raish/raish/mahua-crm/src/app/(dashboard)/settings/error.tsx",
+  "/home/raish/raish/mahua-crm/src/app/(print)/layout.tsx",
+  "/home/raish/raish/mahua-crm/src/app/login/page.tsx",
+  "/home/raish/raish/mahua-crm/src/app/login/login-form.tsx",
+  "/home/raish/raish/mahua-crm/src/app/not-found.tsx",
+  "/home/raish/raish/mahua-crm/tasks/todo.md"
+ ],
+ "commands_run": [
+  {
+   "cmd": "npm run typecheck",
+   "exit_code": 0,
+   "output_tail": "> tsc --noEmit\n\n(no errors; was ~55 errors at session start)"
+  },
+  {
+   "cmd": "npm run lint",
+   "exit_code": 0,
+   "output_tail": "> next lint\n\n\u2714 No ESLint warnings or errors"
+  },
+  {
+   "cmd": "npx next build",
+   "exit_code": 0,
+   "output_tail": "\u2713 Compiled successfully\n   Linting and checking validity of types ...\n \u2713 Generating static pages (9/9)\nRoute (app)\n\u250c \u0192 /  4.04 kB  121 kB\n\u251c \u0192 /_not-found\n\u251c \u0192 /access-denied\n\u251c \u0192 /account-inactive\n\u251c \u0192 /login\n\u251c \u0192 /settings\n\u2514 \u0192 /users\n\u0192 Middleware 56.7 kB\n\u0192 (Dynamic) server-rendered on demand"
+  },
+  {
+   "cmd": "npm run ci:tenant-check",
+   "exit_code": 0,
+   "output_tail": "\u2705 CI Tenant Check PASSED: every public table has org_id, an index, ENABLE + FORCE RLS and an org policy; every view is security_invoker; web roles hold no TRUNCATE / REFERENCES / TRIGGER; all SECURITY DEFINER functions are allowlisted; number generators are locked."
+  },
+  {
+   "cmd": "npm test (run twice)",
+   "exit_code": 1,
+   "output_tail": "\u00d7 tests/rls-tenant-isolation.test.ts > Tenant A session cannot update or delete Tenant B data\n  \u2192 deadlock detected (tests/rls-tenant-isolation.test.ts:107 UPDATE buyers ...)\n\u2713 tests/security-fixes.test.ts (17 tests)\nTest Files 1 failed | 1 passed (2)\nTests 1 failed | 21 passed (22)"
+  },
+  {
+   "cmd": "npx vitest run --no-file-parallelism",
+   "exit_code": 0,
+   "output_tail": "\u2713 tests/security-fixes.test.ts (17 tests) 355ms\n\u2713 tests/rls-tenant-isolation.test.ts (5 tests) 267ms\nTest Files 2 passed (2)\nTests 22 passed (22)"
+  },
+  {
+   "cmd": "node <scratchpad>/label-diff.js (keys of docs/design/labels.md vs LABELS.en/.gu)",
+   "exit_code": 0,
+   "output_tail": "doc keys: 473 | en keys: 483 | gu keys: 483\nMISSING in en: 0 []\nMISSING in gu (doc has Gujarati): 0 []\nextra in en (not in doc): 10 [status.staff.true, status.staff.false, btn.show_password, btn.hide_password, btn.close, section.export_bank, msg.empty.staff, msg.error.gstin, msg.error.ifsc, msg.err.below_floor_price]"
+  },
+  {
+   "cmd": "grep -rniE 'Tenant|RLS|fn_current_org|Multi-Tenant|Receivables|Document Register|Immutable|Entitlements|Preset|Stage 0|Module Registry|Granular|Workspace|credentials' src",
+   "exit_code": 0,
+   "output_tail": "src/lib/db-errors.ts:46: // Access denied (fn_require_module, RLS write refusals).   [comment]\nsrc/lib/labels.ts:46: export const ROLE_PRESETS ...   [identifier]\nsrc/app/(dashboard)/users/user-table.tsx:6,62: ROLE_PRESETS   [identifier]\nsrc/app/(dashboard)/users/actions.ts:63: // Wall 1: ... fn_current_org()   [comment]\n(no user-visible strings)"
+  },
+  {
+   "cmd": "PORT=3100 npm run dev (background) + curl smoke, then TaskStop",
+   "exit_code": 0,
+   "output_tail": "1) /login status: 200\n2) lang=\"en\" present: 1\n3) Try-as heading present ('Try as:'): 1; role words: >Accounts< >Owner< >Plant< >Sales<; >Email< >Password< >Sign in<; jargon count: 0\n4) / with -L ends at: http://localhost:3100/login 200\n5) /some-missing-page status: 404; 'This page does not exist.' present: 1; Go Home: 1\n6) cookie lang=gu on /login -> lang=\"gu\", '\u0a86 \u0aa4\u0ab0\u0ac0\u0a95\u0ac7 \u0a96\u0acb\u0ab2\u0acb:' present: 1; Gujarati not-found copy: 1\n7) /users and /settings unauthenticated -> /login 200\n8) /access-denied unauthenticated -> /login 200\ndev log: no error/warn lines\nafter TaskStop: port 3100 free, curl connection refused"
+  }
+ ],
+ "all_checks_green": false,
+ "open_issues": [
+  "`npm test` with vitest's default file parallelism fails 1/22 with 'deadlock detected' in tests/rls-tenant-isolation.test.ts (both test files call applyMigrations, which re-runs every migration under ACCESS EXCLUSIVE locks, while the other worker runs statements on the same tables). It reproduced twice with no other DB sessions open; `npx vitest run --no-file-parallelism` passes 22/22. Dev-1 logged the same race in tasks/todo.md. It is in Dev-2's harness, not in UI code, and needs `fileParallelism: false` (vitest config) or `--no-file-parallelism` in the test script.",
+  "Web login is still not verifiable: NEXT_PUBLIC_SUPABASE_URL points at 127.0.0.1:54321 with nothing listening, so Sign in / Try as show 'No internet. Try again.' until hosted Supabase credentials arrive. Authenticated screens (Home, Staff, My Company, shell) were verified by typecheck, next build, dev-server redirects and code review only.",
+  "Header on phones shows the company short name in the centre rather than the per-page `<PageTitle>` from components.md section 11 (no title context was built); pages render their own h1 through PageHeader. Can be added in Sprint C if QA wants it.",
+  "Error messages returned by Dev-2's users/actions.ts are plain English strings, so a Gujarati user sees English error toasts on the Staff screen (success toast is translated)."
+ ],
+ "notes_for_qa": [
+  "Check at 390x844 and md+: bottom bar must show exactly the role table from screens.md 0.2 (Owner: Home, Inquiries, Quotes, Orders + More; Accounts: Home, Quotes, Orders, Money; Sales: Home, Inquiries, Quotes, Orders; Plant: Home, Orders, Buyers, Samples). More sheet lists the remaining held modules, Staff, My Company, then Language and Sign out; sidebar is hidden below md and the bottom bar hidden at md+.",
+  "Language toggle: on /login (full words) and in the More sheet on phones; compact EN/\u0a97\u0ac1 in the header on md+. Switching writes cookie `lang` and refreshes; verify every label on the same screen changes and no raw key appears.",
+  "Home shows 0 tiles, 'Nothing to do today. Well done.' and (Plant) 'No order to pack today.' until the Sprint B views exist; it must never show an error box or SQL text. Sprint B routes linked from Home (/inquiries/new, /quotes/new, /payments/new, tile links) will 404 until Dev-1/2/3 Sprint B lands.",
+  "Staff: tapping a row opens the sheet; picking a job button replaces the tick list with that job's modules; opening your own row shows 'You cannot change your own job.' with Save disabled. Errors from the database appear as a red toast (English), success as a green 'Saved' toast.",
+  "My Company: GST number must be 15 letters/digits, IFSC 11 (messages from labels); Name, Address, City, PIN are required; bank cards are omitted when left completely empty. State/country/email are kept from the stored row (not shown).",
+  "/some-missing-page -> 404 with 'This page does not exist.' + Go Home; with cookie lang=gu the copy is Gujarati. Unauthenticated /, /users, /settings, /access-denied all land on /login.",
+  "The help speaker button in the header is a disabled stub by spec (components.md section 11).",
+  "No print pages exist yet; (print)/layout.tsx and src/components/print/* are ready for Dev-2/Dev-3 Sprint B pages."
+ ],
+ "notes_for_other_devs": [
+  "Dev-2: tests/** race \u2014 the two test files run in parallel vitest workers and each re-applies all migrations; add `fileParallelism: false` (vitest config) or ask Dev-1 to change the `test` script to `vitest run --no-file-parallelism` (package.json is Dev-1's). With that, 22/22 pass consistently.",
+  "Dev-2: users/actions.ts `message` is English only; for Sprint C consider returning a label key (messageKey) like contracts 6.2 so the Staff toast can be translated. user-table.tsx already reads `result.ok` / `result.message` as agreed.",
+  "Dev-1 (0004): Home calls `supabase.rpc('fn_follow_up_done', { p_id })` from src/app/(dashboard)/home-actions.ts and reads `v_followups_today` into `FollowupTodayRow` from src/types/home.ts (columns per contracts 5.2, ordered by due_on, created_at). Home filters rows by entity type -> module (inquiry->leads, buyer->buyers, quote->quotes, order->orders, payment->payments) and links order/payment rows to /orders/{entity_id} (payment only when orders is held).",
+  "Dev-1: (dashboard)/layout.tsx now uses getCurrentProfile() + redirect('/login') instead of requireAuth so a switched-off login can render /account-inactive without a redirect loop; every page still calls requireAuth/requireModule. src/middleware.ts was not touched.",
+  "All module devs (Sprint B): shared pieces ready in src/components: `PrintLayout` (src/components/print/print-layout.tsx: props company, title, docNo, date, currency, showBank, backHref, whatsapp{phone,message}; `pickBankAccount`), `PrintToolbar`, `amountInWords` (src/components/print/amount-words.ts), `PageHeader`/`BackButton` (src/components/ui/back-button.tsx), `ListCard`/`ListStack`, `Status`, `KpiTile`, `PhoneActions`, `ChoiceChips`, `MoreFields`, `StickyBar` (pages using it add `pb-28` on phones), `Toast`/`useToast`, `ConfirmSheet`, `EmptyState`/`ErrorState` (pass `message` as a label key and `lang` from server components). `useLang()`/`useT()` from src/components/shell/lang-provider.tsx work in every client component under (dashboard) and (print); server components use getLang() from src/lib/i18n-server.ts.",
+  "All module devs: `app.company_short` is not a label; the shell computes it (business_settings.trade_name || company_name || organizations.name || app.name) in (dashboard)/layout.tsx. Print pages should pass the business_settings row to PrintLayout themselves.",
+  "Dev-1/Dev-2: settings/actions.ts calls revalidatePath('/', 'layout') after a company save so the header/sidebar name updates; nothing else depends on it."
+ ]
+}

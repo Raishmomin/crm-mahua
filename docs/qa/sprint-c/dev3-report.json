@@ -1,0 +1,285 @@
+{
+  "summary": "Dev-3 Sprint C done. A6: Plant reads no money (payments SELECT and v_order_balances exclude operations, so v_money_due is empty and v_home_kpis money is 0); the Plant packing card keeps its 'Wait for advance' guard through a new yes/no definer fn_order_advance_waiting. A7: orders.step_dates set by the five state functions and seed 04; the order stepper and packing card show a date per step. A8: fn_payment_record refuses future dates and non-owner receipts over 110% of the due, with plain messages in the form. A11: Try as is server-side (DEMO_MODE + DEMO_PASSWORD, tryAsAction with the server client); the client bundle has no password or demo email. A12: receipt view /payments/[id] and receipt print, linked from the success screen and the order Money block. G2-06, G2-10, F2-F6, SEC1-07 and favicon fixed. Checks: typecheck 0, lint clean, npm test 100/100, orders-payments 28/28, ci:tenant-check PASS, next build OK (36 routes), seed story intact.",
+  "items": [
+    {
+      "id": "A6 (SEC2-10)",
+      "status": "fixed",
+      "evidence": "0006: payments_select USING (org_id = fn_current_org() AND fn_user_role() IS DISTINCT FROM 'operations'); v_order_balances WHERE adds the same test, so v_money_due is empty and v_home_kpis money columns are 0. Plant screens checked: Home money tile already hidden (!isPlant && has('payments')); orders list, dispatch and checklist read no money; the Plant packing card used v_order_balances.advance_ok, now loadAdvanceWaiting() -> rpc fn_order_advance_waiting (boolean only, own org, orders module, 42501 not_found cross-org; allowlisted). Buyers list (dev1) still reads v_money_due for Plant (routed). Vitest 'A6 (SEC2-10)': ops payments/v_order_balances/v_money_due 0 rows, kpis money 0/0/0/0 with orders_in_production 1; owner 1/3/2 and 199500 unchanged; sales still sees payments; demo-seed case: demo Plant 1/0/0/0 and payments 0. Script as demo users: owner money 511875 + 18900, operations 0.00 / 0 rows."
+    },
+    {
+      "id": "A7 (G2-09)",
+      "status": "fixed",
+      "evidence": "0006: orders.step_dates jsonb NOT NULL DEFAULT '{}' (guarded ADD COLUMN + object CHECK); fn_quote_accept {confirmed}, fn_order_set_status adds in_production/ready (cancelled keeps the dates), fn_order_set_packed ready, fn_order_dispatch dispatched = dispatch date, fn_dispatch_delivered delivered = delivered_on. Seed 04 fills sample-data section 4 (ORD-0001 T-46/45/41/40/38, ORD-0002 T-27/22/9/6, ORD-0003 T-10/2). StatusStepper gets optional stepDates (backward compatible) and shows dd Mon under every reached step; PackingCard keeps the done date on each line (Packing started / Packed / Loaded). Vitest checks each function's key and the seeded T-n offsets."
+    },
+    {
+      "id": "A8 (SEC2-08)",
+      "status": "fixed",
+      "evidence": "fn_payment_record: p_received_on > CURRENT_DATE -> bad_payload DETAIL received_on (owner too); non-owner p_amount > GREATEST(total - received, 0) * 1.1 -> bad_payload DETAIL over_payment (order currency). payments/actions.ts maps them to payments.err.future_date / payments.err.over_payment (en + gu); the form fills {due}. Vitest 'A8 (SEC2-08)': future date, 161700.01 INR and 26400.01 USD refused with the right DETAIL; exactly 110% yesterday and an owner over-payment accepted (rolled back)."
+    },
+    {
+      "id": "A11 (SEC1-06)",
+      "status": "fixed",
+      "evidence": "login/page.tsx (force-dynamic) shows Try as only when process.env.DEMO_MODE === 'true' and DEMO_PASSWORD is set; new src/app/login/actions.ts tryAsAction: Zod role enum, server Supabase client (cookies set server-side), returns ActionResult. login-form.tsx no longer holds the password or the demo emails; NEXT_PUBLIC_DEMO_MODE retired in code (grep src: none) and .env.example (DEMO_MODE=true, DEMO_PASSWORD= with comment); DEMO_MODE / DEMO_PASSWORD appended to .env.local (guarded). After next build: grep -r 'DemoPass123!' .next/static -> no output, exit 1; grep -rl 'mahuvacrm.com' .next/static -> exit 1. next start :3133: DEMO_MODE=true -> 'Try as:' + Owner/Accounts/Sales/Plant; DEMO_MODE='' and 'false' -> 0 Try-as, demo:false, action returns msg.access_denied_title; with DEMO_MODE=true the action returns {ok:false,messageKey:'msg.error.offline'} (no Supabase), bad role -> msg.err.bad_payload."
+    },
+    {
+      "id": "A12 (G2-08)",
+      "status": "fixed",
+      "evidence": "New /payments/[id] (requireModule('payments'), uuid check, loadReceipt): REC number, amount, rupee value + rate for USD, order + PI (link to order), buyer, date, mode, reference, note, due now; Share on WhatsApp (wa.receipt, export buyers in English) + Print. New (print)/payments/[id]/print on PrintLayout: RECEIPT, received from, amount, rupee value, mode, reference, against order, balance due, amount in words. Linked from the Money received success screen ('See receipt') and from the order Money block (receipt rows, payments module only, ?from=order back link). next start: both routes 307 -> /login unauthenticated, no 500; build lists /payments/[id] and /payments/[id]/print."
+    },
+    {
+      "id": "G2-06",
+      "status": "fixed",
+      "evidence": "labels.ts wa.dispatched en 'was dispatched on {date}', gu '{date} ના રોજ રવાના થયો'; dispatchedText requires dispatchedOn and passes formatDate(dispatched_on); both callers (order page, print page) updated. Vitest: en and gu texts contain '10 Nov 2026', no '{..}' left, no 'today'."
+    },
+    {
+      "id": "G2-10",
+      "status": "fixed",
+      "evidence": "helpers.prefillAmount: advance waiting -> advance_expected - received with a 'Full due {due}' hint under the amount; otherwise the due. PaymentOrderOption carries advance_expected / received / advance_ok from v_order_balances. Vitest: ORD-0004 shape -> 8568 + hint; part-paid advance -> rest; advance OK / no advance / 100% advance -> due."
+    },
+    {
+      "id": "F2",
+      "status": "fixed",
+      "evidence": "FormField no longer clones id/aria onto plain wrappers (div/span/section/fieldset); login password Input keeps id='password' with its own aria-invalid/aria-describedby. Rendered /login has exactly 1 id=\"password\" (on the input)."
+    },
+    {
+      "id": "F3",
+      "status": "fixed",
+      "evidence": "language-toggle: group p-0.5 without fixed height, each segment min-h-[48px] (was 41px)."
+    },
+    {
+      "id": "F4",
+      "status": "fixed",
+      "evidence": "globals.css: html[lang='gu'], html[lang='gu'] body { line-height: 1.6 } (beats the body 1.5 rule by specificity)."
+    },
+    {
+      "id": "F5",
+      "status": "fixed",
+      "evidence": "Header shows the screen title on phones from the path (section / new / edit / dispatch / checklist / receipt keys, company name on Home), company name on md+; /users and /settings get the phone back arrow."
+    },
+    {
+      "id": "F6",
+      "status": "fixed",
+      "evidence": "login form noValidate; empty email / password show msg.error.required ('Please fill this' / 'આ ભરો') under the field; rendered form has noValidate."
+    },
+    {
+      "id": "SEC1-07",
+      "status": "fixed",
+      "evidence": "settings/actions.ts: every text has .max() (names 120, address 500, codes/phone/account 32, currency 3), bank_details .max(4); limits.ts shared with settings-form maxLength; too_big -> msg.error.too_long (en + gu)."
+    },
+    {
+      "id": "favicon",
+      "status": "fixed",
+      "evidence": "public/favicon.ico (32x32 PNG-in-ICO) + src/app/icon.svg; next start: /favicon.ico 200 image/x-icon 379 B, /icon.svg 200, <link rel=icon href=/icon.svg>."
+    },
+    {
+      "id": "I1",
+      "status": "already_fixed",
+      "evidence": "Home money tile already shows the 'about ₹' line from v_home_kpis.money_due_about_inr (Sprint B)."
+    }
+  ],
+  "files_changed": [
+    "supabase/migrations/0006_orders_dispatch_payments.sql",
+    "supabase/seed/04_orders_money.sql",
+    "scripts/ci-tenant-check.ts (one allowlist line: fn_order_advance_waiting)",
+    "tests/orders-payments.test.ts",
+    "src/types/orders.ts",
+    "src/types/payments.ts",
+    "src/app/(dashboard)/orders/data.ts",
+    "src/app/(dashboard)/orders/helpers.ts",
+    "src/app/(dashboard)/orders/[id]/page.tsx",
+    "src/app/(print)/orders/[id]/print/[doc]/page.tsx",
+    "src/app/(dashboard)/payments/actions.ts",
+    "src/app/(dashboard)/payments/data.ts",
+    "src/app/(dashboard)/payments/labels.ts",
+    "src/app/(dashboard)/payments/new/page.tsx",
+    "src/app/(dashboard)/payments/[id]/page.tsx (new)",
+    "src/app/(print)/payments/[id]/print/page.tsx (new)",
+    "src/components/payments/payment-form.tsx",
+    "src/components/orders/packing-card.tsx",
+    "src/components/ui/status-stepper.tsx",
+    "src/components/ui/form-field.tsx",
+    "src/components/shell/header.tsx",
+    "src/components/shell/language-toggle.tsx",
+    "src/app/globals.css",
+    "src/app/login/page.tsx",
+    "src/app/login/login-form.tsx",
+    "src/app/login/actions.ts (new)",
+    "src/app/(dashboard)/settings/actions.ts",
+    "src/app/(dashboard)/settings/settings-form.tsx",
+    "src/app/(dashboard)/settings/limits.ts (new)",
+    "src/lib/labels.ts",
+    "src/lib/utils.ts",
+    "src/app/icon.svg (new)",
+    "public/favicon.ico (new)",
+    ".env.example",
+    ".env.local (guarded append: DEMO_MODE, DEMO_PASSWORD)",
+    "tasks/todo.md (append under the Dev-3 Sprint C line)",
+    "docs/qa/sprint-c/dev3-report.json (new)"
+  ],
+  "commands_run": [
+    {
+      "cmd": "npm run db:seed:sql",
+      "exit_code": 0,
+      "output_tail": "ok 0000..0006 migrations; ok supabase/seed/01_core.sql, 02_inquiries.sql, 03_samples_quotes.sql, 04_orders_money.sql; Seed completed."
+    },
+    {
+      "cmd": "npx vitest run tests/orders-payments.test.ts",
+      "exit_code": 0,
+      "output_tail": "✓ tests/orders-payments.test.ts (28 tests); Test Files 1 passed (1); Tests 28 passed (28)"
+    },
+    {
+      "cmd": "npm run typecheck",
+      "exit_code": 0,
+      "output_tail": "tsc --noEmit (no errors)"
+    },
+    {
+      "cmd": "npm run lint",
+      "exit_code": 0,
+      "output_tail": "✔ No ESLint warnings or errors"
+    },
+    {
+      "cmd": "npm test",
+      "exit_code": 0,
+      "output_tail": "orders-payments 28, quotes 23, inquiries 26, security-fixes 18, rls-tenant-isolation 5; Test Files 5 passed (5); Tests 100 passed (100)"
+    },
+    {
+      "cmd": "npm run ci:tenant-check",
+      "exit_code": 0,
+      "output_tail": "✅ CI Tenant Check PASSED: ... all SECURITY DEFINER functions are allowlisted; number generators are locked."
+    },
+    {
+      "cmd": "npx next build",
+      "exit_code": 0,
+      "output_tail": "✓ Compiled successfully; ✓ Generating static pages (22/22); 36 routes incl. ƒ /payments/[id] 2.33 kB, ƒ /payments/[id]/print 3.01 kB, ○ /icon.svg; Middleware 56.7 kB"
+    },
+    {
+      "cmd": "grep -r 'DemoPass123!' .next/static ; grep -rl 'mahuvacrm.com' .next/static ; grep -rl NEXT_PUBLIC_DEMO_MODE .next/static src",
+      "exit_code": 1,
+      "output_tail": "(empty output for all three; exit 1 = no match)"
+    },
+    {
+      "cmd": "next start -p 3133 (DEMO_MODE=true from .env.local) + curl",
+      "exit_code": 0,
+      "output_tail": "/login 200 'Try as:' Owner/Accounts/Sales/Plant, 0 'DemoPass123'; /favicon.ico 200 image/x-icon 379B; /icon.svg 200; /payments/<id> 307 -> /login; /payments/<id>/print 307 -> /login; /orders/<id>, /users, /settings, / 307 -> /login; tryAsAction owner -> {ok:false,messageKey:'msg.error.offline'}; role hacker -> msg.err.bad_payload; server stopped"
+    },
+    {
+      "cmd": "DEMO_MODE='' / DEMO_MODE=false next start -p 3133 + curl",
+      "exit_code": 0,
+      "output_tail": "/login 200; Try-as count 0; demo:false; tryAsAction -> msg.access_denied_title; server stopped both times"
+    },
+    {
+      "cmd": "node scratchpad/story.cjs (owner + operations on the demo org)",
+      "exit_code": 0,
+      "output_tail": "owner new_inquiries 2, quotes_waiting 1, orders_in_production 1, money_due_inr 511875.00, money_due_usd 18900.00, money_overdue_count 1, followups_today 5; operations money 0.00 / 0, payments 0, v_order_balances 0, v_money_due 0"
+    },
+    {
+      "cmd": "node scratchpad/plant-flow.cjs (rolled back)",
+      "exit_code": 0,
+      "output_tail": "Plant: advance waiting ORD-0003 false; Packed + Loaded -> dispatched, step_dates confirmed/in_production/ready/dispatched; balance reminder 'Balance ₹5,11,875 due'; Plant payments visible 0"
+    }
+  ],
+  "all_checks_green": true,
+  "contract_deviations": [
+    "New SECURITY DEFINER fn_order_advance_waiting(uuid) RETURNS boolean (not in contracts section 4): A6 says no Plant screen reads money, but the Plant packing card's 'Wait for advance' guard (screens.md 16B) used v_order_balances.advance_ok. The function returns only yes/no for an order of the caller's org (fn_require_module('orders'), 42501 not_found), is allowlisted, REVOKE PUBLIC/anon, GRANT authenticated.",
+    "A11: Try as renders only when DEMO_MODE=true AND DEMO_PASSWORD is non-empty (A11 names only DEMO_MODE), so the buttons never show without a usable password; the demo emails also moved server-side.",
+    "A7: the stepper shows the date under every reached step (done + current) as in the screens.md 16A wireframe; the old 'since <status_changed_at>' line is kept only for rows without a date for the current step.",
+    "A8: 'due' = GREATEST(total - received before this receipt, 0) in the order currency; on a fully paid order a non-owner cannot record any further receipt.",
+    "F5: the phone header title comes from the path (title.* keys; receipt view uses btn.view_receipt 'Receipt') instead of a PageTitle context set by every page, so other developers' pages needed no change.",
+    "G2-06: wa.dispatched text is now 'was dispatched on {date}' / '{date} ના રોજ રવાના થયો' in src/lib/labels.ts; docs/design/labels.md (lead) still has the old text."
+  ],
+  "open_issues": [
+    "dev1 buyers list (src/app/(dashboard)/buyers/page.tsx) shows the money-due fact and pill to Plant; after A6 v_money_due is empty for Plant, so every buyer reads 'Rs 0 · Paid'. Needs the same isPlant hiding as buyers/[id].",
+    "Lead docs: labels.md wa.dispatched lacks {date}; screens.md 1 still says NEXT_PUBLIC_DEMO_MODE; screens.md 6 says the due is shown to everyone who holds buyers (conflicts with A6); contracts 3.9 (org-wide payments read) and section 4 (no fn_order_advance_waiting) should record A6 as built.",
+    "Hosted readiness: fn_order_dispatch (Plant 'Loaded') and fn_order_advance_waiting read payments inside SECURITY DEFINER for a Plant caller. They rely on the function owner bypassing RLS (superuser locally, postgres BYPASSRLS on Supabase); under a NOBYPASSRLS owner with FORCE RLS, Plant would always see 'Wait for advance' and the dispatch balance reminder would be the full total. Security sign-off item (dev1 saw the same pattern for 0005).",
+    "Plant Home 'To do today' still lists order follow-ups whose note carries money ('Balance $18,900 due'); follow_ups are outside A6. Lead decision whether Plant should see them.",
+    "No Supabase stack / hosted credentials: Try-as end-to-end, signed-in receipt view / print and the stepper dates on screen are proved by SQL as impersonated users, typecheck, next build and unauthenticated renders only.",
+    ".env.local still carries the retired NEXT_PUBLIC_DEMO_MODE line (append-only rule); no code reads it."
+  ],
+  "notes_for_qa": [
+    "Seed step dates: ORD-0001 confirmed T-46, in_production T-45, ready T-41, dispatched T-40, delivered T-38; ORD-0002 T-27/T-22/T-9/T-6; ORD-0003 T-10/T-2. Stepper shows 'dd Mon' under each reached step; Plant ORD-0003 'Packing started' keeps T-2 after Packed.",
+    "Receipt view: /payments/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01 (REC-2627-0001, $8,100, Rs 6,82,425 at 84.25, ORD-0002); print at /payments/<id>/print (A4 RECEIPT, amount in words). Plant and Sales get /access-denied (no payments module).",
+    "A8 words: future date 'The date cannot be after today.'; non-owner over 110% 'This is much more than the due ($X). Only the owner can save it.' (gu both).",
+    "G2-10: demo step 2:55 (ORD-0004, advance $8,568 waiting) prefills 8568 with the hint 'Full due $28,560'.",
+    "Try as needs DEMO_MODE=true and DEMO_PASSWORD in the server env (both now in .env.local); with DEMO_MODE empty the buttons are gone and a forged action call returns msg.access_denied_title.",
+    "Bundle check after npx next build: grep -r 'DemoPass123!' .next/static and grep -rl 'mahuvacrm.com' .next/static both empty.",
+    "F2 one id=password on the input; F3 segments min 48px; F4 lang=gu body line-height 1.6 (27.2px); F5 phone header shows the screen title, back arrow on /users and /settings; F6 empty submit shows 'Please fill this' under the field."
+  ],
+  "notes_for_other_devs": [
+    "dev2: 0007_hardening must keep GRANT EXECUTE ON FUNCTION fn_order_advance_waiting(uuid) TO authenticated (the Plant order page calls it via rpc); 0006 already revokes it from PUBLIC and anon. I appended 'fn_order_advance_waiting' to SECURITY_DEFINER_ALLOWLIST (single line).",
+    "dev1: please hide the due fact and money pill for role operations on the buyers list (buyers/page.tsx around the ListCard fact2/badge), and skip the v_money_due read for Plant in buyers/queries.ts; after A6 Plant gets no rows there.",
+    "all: FormField no longer clones id/aria onto a plain wrapper (div/span/section/fieldset); put id={htmlFor} on the control inside. inquiry-form's buyer search already does this, so its label now focuses the input.",
+    "all: dispatchedText() now requires dispatchedOn; StatusStepper takes an optional stepDates; Order rows carry step_dates (toOrder normalises it); formatShortDate() added to src/lib/utils."
+  ],
+  "fix_round": {
+    "date": "2026-11-16",
+    "summary": "G3-03 (dev3 part) fixed: 0006 money reminders (Advance, Balance, BL received - ask for balance) are written as entity_type 'payment' with entity_id = order id, so Home's module filter hides them from Plant and still links /orders/{id}; order detail shows payment notes only with the payments module. Remaining part is dev1's (seed 02 row + follow_ups_select clause).",
+    "items": [
+      {
+        "id": "G3-03",
+        "status": "fixed",
+        "evidence": "node docs/qa/sprint-c/dev3-g3-03-probe.cjs -> advance + balance reminders entity_type payment; Plant Home shows no definer-written money rows; with seed row cc..01 simulated as payment Plant Home shows only 'Re-quote red flakes...'; G3-03 PROBE OK. Without dev1's seed change Plant Home still shows 'Balance $18,900 due' (seed 02, dev1)."
+      }
+    ],
+    "files_changed": [
+      "supabase/migrations/0006_orders_dispatch_payments.sql",
+      "src/app/(dashboard)/orders/[id]/page.tsx",
+      "tests/orders-payments.test.ts",
+      "docs/qa/sprint-c/dev3-g3-03-probe.cjs",
+      "docs/qa/sprint-c/dev3-report.json",
+      "tasks/todo.md"
+    ],
+    "commands_run": [
+      {
+        "cmd": "npm run db:seed:sql",
+        "exit_code": 0,
+        "output_tail": "ok 0006 ... ok 04_orders_money.sql; Seed completed."
+      },
+      {
+        "cmd": "node docs/qa/sprint-c/dev3-g3-03-probe.cjs",
+        "exit_code": 0,
+        "output_tail": "G3-03 PROBE OK"
+      },
+      {
+        "cmd": "node docs/qa/sprint-c/dev1-seed-story.cjs",
+        "exit_code": 0,
+        "output_tail": "owner v_home_kpis 2/1/1/511875/18900/1/5; SEED STORY OK"
+      },
+      {
+        "cmd": "npm run typecheck",
+        "exit_code": 0,
+        "output_tail": "tsc --noEmit (no errors)"
+      },
+      {
+        "cmd": "npm run lint",
+        "exit_code": 0,
+        "output_tail": "No ESLint warnings or errors"
+      },
+      {
+        "cmd": "npm test",
+        "exit_code": 0,
+        "output_tail": "Test Files 5 passed (5); Tests 111 passed (111)"
+      },
+      {
+        "cmd": "npm run ci:tenant-check",
+        "exit_code": 0,
+        "output_tail": "CI Tenant Check PASSED"
+      },
+      {
+        "cmd": "npx next build",
+        "exit_code": 0,
+        "output_tail": "build OK (Middleware 56.7 kB)"
+      }
+    ],
+    "all_checks_green": true,
+    "contract_deviations": [
+      "contracts.md 4.4 rows for fn_quote_accept, fn_order_dispatch and fn_dispatch_tick say the follow-up is entity `order`; now entity `payment` (entity_id = order id) per the G3-03 fix. Section 5.2 links (payment -> /orders/{id}) and fn_follow_up_done (payment -> payments or orders) already fit."
+    ],
+    "open_issues": [
+      "G3-03 is not fully closed until dev1 changes seed 02 row cccccccc-...-cc01 'Balance $18,900 due' to entity_type 'payment' and adds (entity_type <> 'payment' OR fn_user_role() IS DISTINCT FROM 'operations') to follow_ups_select in 0004; today Plant Home still shows that seeded row and ops can read payment notes through the API.",
+      "Lead: update contracts.md 4.4 (three definers write entity `payment`)."
+    ],
+    "notes_for_other_devs": [
+      "dev1: seed 02 row cc..01 -> entity_type 'payment'; follow_ups_select A6 clause. Definers' mark-done already matches IN ('order','payment'); the orders page query already reads both types. Re-run node docs/qa/sprint-c/dev3-g3-03-probe.cjs after: the INFO line should show [] and 0 payment rows for ops."
+    ]
+  }
+}

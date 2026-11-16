@@ -1,13 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { Client } from 'pg';
-import * as dotenv from 'dotenv';
-import * as fs from 'fs';
-import * as path from 'path';
-
-dotenv.config({ path: '.env.local' });
-dotenv.config();
-
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/onion_crm';
+import type { Client } from 'pg';
+import { connect, applyMigrations, actAs, resetRole } from './helpers/db';
 
 describe('Stage 0 Multi-Tenant RLS & 3-Wall Permissions', () => {
   let client: Client;
@@ -18,25 +11,28 @@ describe('Stage 0 Multi-Tenant RLS & 3-Wall Permissions', () => {
   const userBId = 'bbbbbbbb-1111-4bbb-8bbb-111111111111';
   const salesAId = 'aaaaaaaa-2222-4aaa-8aaa-222222222222';
 
-  beforeAll(async () => {
-    client = new Client({ connectionString });
-    await client.connect();
+  const orgIds = [orgAId, orgBId];
+  const userIds = [userAId, userBId, salesAId];
 
-    // Ensure schema is applied
-    const mig0001 = fs.readFileSync(path.join(__dirname, '../supabase/migrations/0001_core_system.sql'), 'utf-8');
-    const mig0002 = fs.readFileSync(path.join(__dirname, '../supabase/migrations/0002_catalog_and_buyers.sql'), 'utf-8');
-    await client.query(mig0001);
-    await client.query(mig0002);
+  async function cleanup() {
+    await resetRole(client);
+    await client.query(`DELETE FROM audit_log WHERE org_id = ANY($1::uuid[])`, [orgIds]);
+    await client.query(`DELETE FROM buyers WHERE org_id = ANY($1::uuid[])`, [orgIds]);
+    await client.query(`DELETE FROM profiles WHERE org_id = ANY($1::uuid[])`, [orgIds]);
+    await client.query(`DELETE FROM doc_counters WHERE org_id = ANY($1::uuid[])`, [orgIds]);
+    await client.query(`DELETE FROM entity_code_counters WHERE org_id = ANY($1::uuid[])`, [orgIds]);
+    await client.query(`DELETE FROM organizations WHERE id = ANY($1::uuid[])`, [orgIds]);
+    await client.query(`DELETE FROM auth.users WHERE id = ANY($1::uuid[])`, [userIds]);
+  }
+
+  beforeAll(async () => {
+    client = await connect();
+
+    // Ensure schema is applied (every migration, in order)
+    await applyMigrations(client);
 
     // Clean up any test fixtures from prior runs
-    await client.query(`
-      DELETE FROM audit_log WHERE org_id IN ('${orgAId}', '${orgBId}');
-      DELETE FROM buyers WHERE org_id IN ('${orgAId}', '${orgBId}');
-      DELETE FROM profiles WHERE org_id IN ('${orgAId}', '${orgBId}');
-      DELETE FROM doc_counters WHERE org_id IN ('${orgAId}', '${orgBId}');
-      DELETE FROM entity_code_counters WHERE org_id IN ('${orgAId}', '${orgBId}');
-      DELETE FROM organizations WHERE id IN ('${orgAId}', '${orgBId}');
-    `);
+    await cleanup();
 
     // 1. Create Organization A and Organization B
     await client.query(`
@@ -78,23 +74,14 @@ describe('Stage 0 Multi-Tenant RLS & 3-Wall Permissions', () => {
 
   afterAll(async () => {
     if (client) {
-      await client.query(`RESET ROLE;`);
-      await client.query(`
-        DELETE FROM audit_log WHERE org_id IN ('${orgAId}', '${orgBId}');
-        DELETE FROM buyers WHERE org_id IN ('${orgAId}', '${orgBId}');
-        DELETE FROM profiles WHERE org_id IN ('${orgAId}', '${orgBId}');
-        DELETE FROM doc_counters WHERE org_id IN ('${orgAId}', '${orgBId}');
-        DELETE FROM entity_code_counters WHERE org_id IN ('${orgAId}', '${orgBId}');
-        DELETE FROM organizations WHERE id IN ('${orgAId}', '${orgBId}');
-      `);
+      await cleanup();
       await client.end();
     }
   });
 
   it('Tenant A session cannot read Tenant B data via RLS', async () => {
     // Switch to authenticated non-superuser role to enforce RLS
-    await client.query(`SET ROLE authenticated;`);
-    await client.query(`SELECT set_config('request.jwt.claim.sub', '${userAId}', false);`);
+    await actAs(client, userAId);
 
     // Org A user queries buyers: should return only Org A's buyer
     const resA = await client.query(`SELECT buyer_code, company_name FROM buyers;`);
@@ -106,17 +93,16 @@ describe('Stage 0 Multi-Tenant RLS & 3-Wall Permissions', () => {
     expect(resB.rows.length).toBe(0);
 
     // Switch to Tenant B session
-    await client.query(`SELECT set_config('request.jwt.claim.sub', '${userBId}', false);`);
+    await actAs(client, userBId);
     const resBUser = await client.query(`SELECT buyer_code, company_name FROM buyers;`);
     expect(resBUser.rows.length).toBe(1);
     expect(resBUser.rows[0].buyer_code).toBe('BUY-B001');
 
-    await client.query(`RESET ROLE;`);
+    await resetRole(client);
   });
 
   it('Tenant A session cannot update or delete Tenant B data', async () => {
-    await client.query(`SET ROLE authenticated;`);
-    await client.query(`SELECT set_config('request.jwt.claim.sub', '${userAId}', false);`);
+    await actAs(client, userAId);
 
     const updateRes = await client.query(`
       UPDATE buyers SET company_name = 'Hacked' WHERE org_id = '${orgBId}';
@@ -128,12 +114,11 @@ describe('Stage 0 Multi-Tenant RLS & 3-Wall Permissions', () => {
     `);
     expect(deleteRes.rowCount).toBe(0);
 
-    await client.query(`RESET ROLE;`);
+    await resetRole(client);
   });
 
   it('Database Wall: fn_require_module allows held module and rejects missing module', async () => {
-    await client.query(`SET ROLE authenticated;`);
-    await client.query(`SELECT set_config('request.jwt.claim.sub', '${salesAId}', false);`);
+    await actAs(client, salesAId);
 
     // Sales has 'orders' module -> should succeed
     const allowed = await client.query(`SELECT fn_require_module('orders');`);
@@ -144,28 +129,30 @@ describe('Stage 0 Multi-Tenant RLS & 3-Wall Permissions', () => {
       /Access denied: module payments is required/
     );
 
-    await client.query(`RESET ROLE;`);
+    await resetRole(client);
   });
 
+  // Since 0003 the generators are not executable by web sessions (tests/security-fixes.test.ts
+  // proves that); trusted scripts call them with the app.current_org override.
   it('Generates atomic sequential entity codes (INQ, BUY, ORD)', async () => {
-    await client.query(`SET ROLE authenticated;`);
-    await client.query(`SELECT set_config('request.jwt.claim.sub', '${userAId}', false);`);
+    await resetRole(client);
+    await client.query(`SELECT set_config('app.current_org', $1, false);`, [orgAId]);
 
     const code1 = await client.query(`SELECT fn_next_code('INQ');`);
     const code2 = await client.query(`SELECT fn_next_code('INQ');`);
     expect(code1.rows[0].fn_next_code).toBe('INQ-0001');
     expect(code2.rows[0].fn_next_code).toBe('INQ-0002');
 
-    await client.query(`RESET ROLE;`);
+    await resetRole(client);
   });
 
   it('Generates Indian Financial Year document numbers (QTN-2627-0001)', async () => {
-    await client.query(`SET ROLE authenticated;`);
-    await client.query(`SELECT set_config('request.jwt.claim.sub', '${userAId}', false);`);
+    await resetRole(client);
+    await client.query(`SELECT set_config('app.current_org', $1, false);`, [orgAId]);
 
     const docNo = await client.query(`SELECT fn_next_doc_no('QTN');`);
     expect(docNo.rows[0].fn_next_doc_no).toMatch(/^QTN-\d{4}-0001$/);
 
-    await client.query(`RESET ROLE;`);
+    await resetRole(client);
   });
 });

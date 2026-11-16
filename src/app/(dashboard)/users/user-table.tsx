@@ -1,244 +1,205 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Shield, Check, X, Edit, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ALL_MODULES, ROLE_PRESETS, ModuleKey, UserRole, LABELS } from '@/lib/labels';
-import { Profile } from '@/types/database';
-import { updateUserPermissionsAction, toggleUserStatusAction } from './actions';
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, BookOpen, Check, Crown, Phone, ShoppingBag, type LucideIcon } from 'lucide-react';
+import { ALL_MODULES, ROLE_PRESETS, USER_ROLES, type ModuleKey, type UserRole } from '@/lib/labels';
+import type { Profile } from '@/types/database';
+import { cn } from '@/lib/utils';
+import { roleWord } from '@/lib/i18n';
+import { ListCard, ListStack } from '@/components/ui/list-card';
+import { Status } from '@/components/ui/status-badge';
+import { ChoiceChips } from '@/components/ui/choice-chips';
+import { MoreFields } from '@/components/ui/more-fields';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Toast, useToast } from '@/components/ui/toast';
+import { useLang, useT } from '@/components/shell/lang-provider';
+import { updateUserPermissionsAction, toggleUserStatusAction, type ActionResult } from './actions';
 
+const ROLE_ICONS: Record<UserRole, LucideIcon> = { owner: Crown, accountant: BookOpen, sales: Phone, operations: ShoppingBag };
+/** The 10 modules with a screen; documents / reports / audit stay in the DB but are never listed. */
+const SHOWN_MODULES = ALL_MODULES.filter((m) => m.shown);
+
+function sameSet(a: ModuleKey[], b: ModuleKey[]): boolean {
+  return a.length === b.length && a.every((k) => b.includes(k));
+}
+
+/** Staff list (ListCards) + change-access sheet: 4 job buttons, login on/off, "Change details" tick list. */
 export function UserTable({ users, currentUserId }: { users: Profile[]; currentUserId: string }) {
-  const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
-  const [editRole, setEditRole] = useState<UserRole>('sales');
-  const [editModules, setEditModules] = useState<ModuleKey[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const lang = useLang();
+  const tt = useT();
+  const router = useRouter();
+  const { toast, show, clear } = useToast();
 
-  function openEditModal(user: Profile) {
-    setSelectedUser(user);
-    setEditRole(user.role);
-    setEditModules(user.modules || []);
-    setError(null);
+  const [selected, setSelected] = React.useState<Profile | null>(null);
+  const [role, setRole] = React.useState<UserRole>('sales');
+  const [modules, setModules] = React.useState<ModuleKey[]>([]);
+  const [active, setActive] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
+
+  const isSelf = selected?.id === currentUserId;
+
+  function openSheet(user: Profile) {
+    setSelected(user);
+    setRole(user.role);
+    setModules(Array.isArray(user.modules) ? user.modules : []);
+    setActive(user.is_active);
   }
 
-  function handleRolePresetChange(role: UserRole) {
-    setEditRole(role);
-    setEditModules(ROLE_PRESETS[role]);
+  const closeSheet = React.useCallback(() => setSelected(null), []);
+
+  React.useEffect(() => {
+    if (!selected) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeSheet();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selected, closeSheet]);
+
+  function pickJob(next: UserRole) {
+    setRole(next);
+    setModules(ROLE_PRESETS[next]);
   }
 
-  function toggleModule(modKey: ModuleKey) {
-    setEditModules((prev) =>
-      prev.includes(modKey) ? prev.filter((k) => k !== modKey) : [...prev, modKey]
-    );
+  function toggleModule(key: ModuleKey) {
+    setModules((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
   }
 
-  async function handleSave() {
-    if (!selectedUser) return;
+  async function save() {
+    if (!selected || isSelf) return;
     setSaving(true);
-    setError(null);
+    const current = Array.isArray(selected.modules) ? selected.modules : [];
+    const accessChanged = role !== selected.role || !sameSet(modules, current);
+    const loginChanged = active !== selected.is_active;
 
-    try {
-      await updateUserPermissionsAction({
-        userId: selectedUser.id,
-        role: editRole,
-        modules: editModules,
-      });
-      setSelectedUser(null);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to update permissions.');
-    } finally {
-      setSaving(false);
+    let result: ActionResult = { ok: true };
+    if (accessChanged) result = await updateUserPermissionsAction({ userId: selected.id, role, modules });
+    if (result.ok && loginChanged) result = await toggleUserStatusAction({ userId: selected.id, isActive: active });
+    setSaving(false);
+
+    if (!result.ok) {
+      show('error', tt(result.messageKey));
+      return;
     }
+    show('success', tt('msg.saved'));
+    setSelected(null);
+    router.refresh();
   }
 
-  async function handleToggleStatus(user: Profile) {
-    try {
-      await toggleUserStatusAction({
-        userId: user.id,
-        isActive: !user.is_active,
-      });
-    } catch (err: any) {
-      alert(err?.message || 'Failed to toggle status.');
-    }
-  }
+  const shownCount = (mods: ModuleKey[]) => mods.filter((k) => SHOWN_MODULES.some((m) => m.key === k)).length;
 
   return (
-    <div className="space-y-4">
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-left text-sm text-slate-700">
-          <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200">
-            <tr>
-              <th className="px-6 py-3 font-semibold">{LABELS.users.colName}</th>
-              <th className="px-6 py-3 font-semibold">{LABELS.users.colRole}</th>
-              <th className="px-6 py-3 font-semibold">{LABELS.users.colModules}</th>
-              <th className="px-6 py-3 font-semibold">{LABELS.users.colStatus}</th>
-              <th className="px-6 py-3 font-semibold text-right">{LABELS.common.actions}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200">
-            {users.map((user) => (
-              <tr key={user.id} className="hover:bg-slate-50/70 transition-colors">
-                <td className="px-6 py-4">
-                  <div className="font-semibold text-slate-900">{user.full_name}</div>
-                  <div className="text-xs text-slate-500">{user.email}</div>
-                </td>
-                <td className="px-6 py-4">
-                  <Badge variant="outline" className="capitalize font-semibold text-xs">
-                    {user.role}
-                  </Badge>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex flex-wrap gap-1 max-w-md">
-                    {user.modules?.map((m) => (
-                      <span
-                        key={m}
-                        className="inline-block px-1.5 py-0.5 text-[10px] bg-slate-100 text-slate-700 rounded border border-slate-200"
-                      >
-                        {m}
-                      </span>
-                    ))}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <Badge variant={user.is_active ? 'success' : 'destructive'} className="text-[11px]">
-                    {user.is_active ? LABELS.users.active : LABELS.users.inactive}
-                  </Badge>
-                </td>
-                <td className="px-6 py-4 text-right space-x-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 text-xs gap-1"
-                    onClick={() => openEditModal(user)}
-                  >
-                    <Edit className="h-3 w-3" />
-                    {LABELS.users.editModules}
-                  </Button>
-                  {user.id !== currentUserId && (
-                    <Button
-                      size="sm"
-                      variant={user.is_active ? 'destructive' : 'secondary'}
-                      className="h-8 text-xs"
-                      onClick={() => handleToggleStatus(user)}
-                    >
-                      {user.is_active ? 'Deactivate' : 'Activate'}
-                    </Button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <>
+      <ListStack>
+        {users.map((u) => (
+          <ListCard
+            key={u.id}
+            onClick={() => openSheet(u)}
+            title={u.full_name}
+            fact1={roleWord(lang, u.role)}
+            fact2={tt('field.staff.can_see', { n: shownCount(Array.isArray(u.modules) ? u.modules : []) })}
+            badge={<Status domain="staff" code={u.is_active} />}
+          />
+        ))}
+      </ListStack>
 
-      {/* Permissions Edit Modal */}
-      {selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl space-y-5 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  {LABELS.users.modalTitle}
-                </h3>
-                <p className="text-xs text-slate-500">
-                  {selectedUser.full_name} ({selectedUser.email})
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedUser(null)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X className="h-5 w-5" />
+      {selected && (
+        <div className="fixed inset-0 z-40 bg-white md:bg-slate-900/40" role="dialog" aria-modal="true" aria-labelledby="staff-sheet-title">
+          <button type="button" aria-label={tt('btn.close')} className="absolute inset-0 hidden md:block" onClick={closeSheet} />
+          <div className="relative flex h-full flex-col bg-white md:ml-auto md:w-[480px] md:shadow-xl">
+            <div className="flex items-center gap-2 border-b border-slate-200 px-2 py-2">
+              <button type="button" onClick={closeSheet} aria-label={tt('btn.back')} className={buttonVariants({ variant: 'ghost', size: 'icon' })}>
+                <ArrowLeft aria-hidden="true" />
               </button>
-            </div>
-
-            {error && (
-              <div className="p-3 text-xs bg-rose-50 border border-rose-200 text-rose-700 rounded">
-                {error}
-              </div>
-            )}
-
-            {/* Role Preset Selector */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-2">
-                Preset Role Archetype
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {(['owner', 'accountant', 'sales', 'operations'] as UserRole[]).map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => handleRolePresetChange(r)}
-                    className={`p-2.5 rounded-lg border text-left text-xs capitalize transition-colors ${
-                      editRole === r
-                        ? 'border-emerald-600 bg-emerald-50 text-emerald-900 font-bold'
-                        : 'border-slate-200 hover:border-slate-300 text-slate-700'
-                    }`}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-              <p className="text-[11px] text-slate-500 mt-1">
-                Selecting a preset will populate recommended modules, which you can customize below.
-              </p>
-            </div>
-
-            {/* Granular Module Checkboxes */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-2">
-                Granular Module Entitlements ({editModules.length} of {ALL_MODULES.length})
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {ALL_MODULES.map((mod) => {
-                  const checked = editModules.includes(mod.key);
-                  return (
-                    <label
-                      key={mod.key}
-                      onClick={() => toggleModule(mod.key)}
-                      className={`flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer select-none text-xs transition-colors ${
-                        checked
-                          ? 'border-emerald-300 bg-emerald-50/50'
-                          : 'border-slate-200 bg-slate-50/30'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => {}}
-                        className="mt-0.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                      />
-                      <div>
-                        <div className="font-semibold text-slate-800">{mod.label}</div>
-                        <div className="text-[10px] text-slate-500 leading-tight">
-                          {mod.description}
-                        </div>
-                      </div>
-                    </label>
-                  );
-                })}
+              <div className="min-w-0 flex-1">
+                <h2 id="staff-sheet-title" className="truncate text-xl font-bold text-slate-900">
+                  {selected.full_name}
+                </h2>
+                <p className="truncate text-sm text-slate-500">{selected.email}</p>
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-3 border-t">
-              <Button variant="outline" onClick={() => setSelectedUser(null)} disabled={saving}>
-                {LABELS.common.cancel}
-              </Button>
-              <Button onClick={handleSave} disabled={saving} className="gap-1.5">
-                {saving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {LABELS.common.saving}
-                  </>
-                ) : (
-                  LABELS.users.savePermissions
-                )}
+            <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-4">
+              {isSelf && (
+                <p role="note" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-base text-amber-900">
+                  {tt('msg.err.self_change')}
+                </p>
+              )}
+
+              <section className="space-y-2">
+                <h3 className="text-sm font-semibold text-slate-700">{tt('section.job')}</h3>
+                <ChoiceChips<UserRole>
+                  grid
+                  size="lg"
+                  ariaLabel={tt('field.staff.job')}
+                  value={role}
+                  onChange={pickJob}
+                  disabled={isSelf || saving}
+                  options={USER_ROLES.map((r) => ({ value: r, label: roleWord(lang, r), icon: ROLE_ICONS[r] }))}
+                />
+              </section>
+
+              <section className="space-y-2">
+                <h3 className="text-sm font-semibold text-slate-700">{tt('field.staff.login')}</h3>
+                <ChoiceChips<'on' | 'off'>
+                  ariaLabel={tt('field.staff.login')}
+                  value={active ? 'on' : 'off'}
+                  onChange={(v) => setActive(v === 'on')}
+                  disabled={isSelf || saving}
+                  options={[
+                    { value: 'on', label: tt('status.staff.true') },
+                    { value: 'off', label: tt('status.staff.false') },
+                  ]}
+                />
+              </section>
+
+              <MoreFields moreLabel={tt('btn.change_details')} lessLabel={tt('btn.less')}>
+                <h3 className="text-sm font-semibold text-slate-700">{tt('section.can_see')}</h3>
+                <ul className="divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200">
+                  {SHOWN_MODULES.map((m) => {
+                    const checked = modules.includes(m.key);
+                    return (
+                      <li key={m.key}>
+                        <button
+                          type="button"
+                          role="checkbox"
+                          aria-checked={checked}
+                          disabled={isSelf || saving}
+                          onClick={() => toggleModule(m.key)}
+                          className="flex min-h-[56px] w-full items-center gap-3 px-4 py-2 text-left hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600 disabled:opacity-50"
+                        >
+                          <span
+                            className={cn(
+                              'flex h-7 w-7 shrink-0 items-center justify-center rounded-md border',
+                              checked ? 'border-emerald-700 bg-emerald-700 text-white' : 'border-slate-300 bg-white'
+                            )}
+                            aria-hidden="true"
+                          >
+                            {checked && <Check className="h-5 w-5" />}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-base font-medium text-slate-900">{tt(m.labelKey)}</span>
+                            <span className="block text-sm text-slate-500">{tt(m.descriptionKey)}</span>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </MoreFields>
+            </div>
+
+            <div className="border-t border-slate-200 bg-white p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+              <Button fullWidth onClick={save} loading={saving} loadingLabel={tt('btn.saving')} disabled={isSelf}>
+                {tt('btn.save')}
               </Button>
             </div>
           </div>
         </div>
       )}
-    </div>
+
+      <Toast toast={toast} onClose={clear} />
+    </>
   );
 }

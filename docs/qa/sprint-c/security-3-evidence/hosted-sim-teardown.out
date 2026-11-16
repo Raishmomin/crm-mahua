@@ -1,0 +1,12 @@
+DROP DATABASE
+DO
+ mahua_sc_left 
+---------------
+             0
+(1 row)
+
+ role_left 
+-----------
+         0
+(1 row)
+

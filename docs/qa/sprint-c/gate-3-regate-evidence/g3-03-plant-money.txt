@@ -1,0 +1,63 @@
+
+--- Home To do after: seed (demo start)
+  owner      kpi=5 list=5 money rows in list=["Balance $18,900 due"]
+  accountant kpi=5 list=3 money rows in list=["Balance $18,900 due"]
+  sales      kpi=5 list=4 money rows in list=[]
+  plant      kpi=4 list=1 money rows in list=[]
+PASS [seed (demo start)] Plant Home To do shows no money reminder
+PASS [seed (demo start)] owner and accountant still see money reminders
+PASS [seed (demo start)] Plant API read of follow_ups: 0 payment / money-reminder rows (0)
+
+INQ-0011 / QTN-2627-0005 accepted -> order 4b1cbc2b-7353-4e93-b861-3773f971e9a3
+PASS fn_quote_accept writes the Advance reminder as entity payment [{"entity_type":"payment","note":"Advance $8,568 due - check bank","done":false}]
+
+--- Home To do after: quote accepted (advance reminder open)
+  owner      kpi=5 list=5 money rows in list=["Balance $18,900 due"]
+  accountant kpi=5 list=3 money rows in list=["Balance $18,900 due"]
+  sales      kpi=5 list=4 money rows in list=[]
+  plant      kpi=4 list=1 money rows in list=[]
+PASS [quote accepted (advance reminder open)] Plant Home To do shows no money reminder
+PASS [quote accepted (advance reminder open)] owner and accountant still see money reminders
+PASS [quote accepted (advance reminder open)] Plant API read of follow_ups: 0 payment / money-reminder rows (0)
+PASS Plant fn_follow_up_done(Advance reminder) -> 42501 not_found 42501 not_found
+PASS Plant direct UPDATE of Advance reminder changes 0 rows 42501 permission denied for table follow_ups
+PASS Plant fn_follow_up_done(seeded Balance $18,900) -> not_found 42501 not_found
+PASS Plant SELECT seeded Balance row by id -> 0 rows
+PASS advance payment ticks the Advance reminder done (mark-done matches payment rows)
+
+--- Home To do after: advance received
+  owner      kpi=5 list=5 money rows in list=["Balance $18,900 due"]
+  accountant kpi=5 list=3 money rows in list=["Balance $18,900 due"]
+  sales      kpi=5 list=4 money rows in list=[]
+  plant      kpi=4 list=1 money rows in list=[]
+PASS [advance received] Plant Home To do shows no money reminder
+PASS [advance received] owner and accountant still see money reminders
+PASS [advance received] Plant API read of follow_ups: 0 payment / money-reminder rows (0)
+PASS Plant: Packing started + Packed (demo 3:25) work
+
+--- Home To do after: Plant packed (demo 3:25)
+  owner      kpi=5 list=5 money rows in list=["Balance $18,900 due"]
+  accountant kpi=5 list=3 money rows in list=["Balance $18,900 due"]
+  sales      kpi=5 list=4 money rows in list=[]
+  plant      kpi=4 list=1 money rows in list=[]
+PASS [Plant packed (demo 3:25)] Plant Home To do shows no money reminder
+PASS [Plant packed (demo 3:25)] owner and accountant still see money reminders
+PASS [Plant packed (demo 3:25)] Plant API read of follow_ups: 0 payment / money-reminder rows (0)
+PASS Plant dispatches the order (container)
+PASS fn_order_dispatch writes the Balance reminder as entity payment [{"entity_type":"payment","note":"Balance $19,992 due"}]
+PASS fn_dispatch_tick(bl) writes "BL received - ask for balance" as entity payment [{"entity_type":"payment","note":"BL received - send copy and ask for balance"}]
+
+--- Home To do after: dispatched + BL received
+  owner      kpi=7 list=7 money rows in list=["Balance $18,900 due","BL received - send copy and ask for balance","Balance $19,992 due"]
+  accountant kpi=7 list=5 money rows in list=["Balance $18,900 due","BL received - send copy and ask for balance","Balance $19,992 due"]
+  sales      kpi=7 list=4 money rows in list=[]
+  plant      kpi=4 list=1 money rows in list=[]
+PASS [dispatched + BL received] Plant Home To do shows no money reminder
+PASS [dispatched + BL received] owner and accountant still see money reminders
+PASS [dispatched + BL received] Plant API read of follow_ups: 0 payment / money-reminder rows (0)
+PASS Plant order page notes (follow_ups for the order) carry no money words []
+
+INFO sales Home: tile=7 list=4 (sales has orders but not payments; payment rows are counted by the KPI, filtered from the list)
+
+ROLLED BACK. 26 pass, 0 fail  G3-03 PLANT MONEY OK
+EXIT=0

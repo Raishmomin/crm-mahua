@@ -1,0 +1,15 @@
+   current_user   | super | bypassrls 
+------------------+-------+-----------
+ sc_supa_postgres | f     | t
+(1 row)
+
+ cost_rows_before | bank_before 
+------------------+-------------
+                3 |           1
+(1 row)
+
+ cost_rows_after | bank_after | kept_rest 
+-----------------+------------+-----------
+               0 |          0 |         1
+(1 row)
+

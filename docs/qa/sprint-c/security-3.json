@@ -1,0 +1,186 @@
+{
+  "verdict": "pass",
+  "summary": "Security sign-off for the demo: PASS. There are no blocker or high findings. Every attack from reviews 1 and 2 is still blocked. Every Sprint C fix held up when attacked directly as owner, accountant, sales, operations, anon and an org-B owner: SEC1-03/04/05/06/07/08/09/11/12 and SEC2-05/06/07/08/09/10/11. A Supabase-like NOSUPERUSER BYPASSRLS owner with Supabase default privileges runs the whole demo flow, CI passes, and anon can do nothing. Open: SEC3-03 (major, dev1: Plant buyers list shows every buyer as Paid after A6), SEC3-01 (minor, dev1: follow_ups UPDATE lets staff postpone or rewrite other people's and system reminders), SEC3-02 (minor, dev2: no guard that the migration owner bypasses RLS; under NOBYPASSRLS the whole app recurses), SEC3-04 (minor, dev1: seed-users falls back to the public demo password on hosted), plus 3 info items.",
+  "checks_run": [
+    {
+      "check": "npm run ci:tenant-check (onion_crm)",
+      "result": "pass",
+      "output_tail": "✅ CI Tenant Check PASSED: every public table has org_id, an index, ENABLE + FORCE RLS and an org policy; ... PUBLIC / anon execute no function; every function a policy, view or app RPC needs is executable by authenticated; new functions are granted to nobody by default."
+    },
+    {
+      "check": "npm test",
+      "result": "pass",
+      "output_tail": "Test Files 5 passed (5) / Tests 111 passed (111)"
+    },
+    {
+      "check": "npm run typecheck",
+      "result": "pass",
+      "output_tail": "> tsc --noEmit (exit 0, no output)"
+    },
+    {
+      "check": "npm run lint",
+      "result": "pass",
+      "output_tail": "✔ No ESLint warnings or errors"
+    },
+    {
+      "check": "Regression: review-1 and review-2 attacks (sec3-attacks.cjs H1-H4, E2, C3, A6) on onion_crm, rolled back",
+      "result": "pass",
+      "output_tail": "sales self_promote 42501 permission denied; fn_next_code 42501; GUC app.current_org=B -> current_org MDPL, b_orders 0; ops module override -> 42501 Access denied; 14 modules -> bad_payload modules; switched-off ops sees 1 profile, 0 buyers; org-B owner: MDPL orders/payments/audit/profiles 0, every definer 42501 not_found; EUR item -> below_floor_price no_price"
+    },
+    {
+      "check": "A10 anon/PUBLIC execute (A1-A4, B1-B2)",
+      "result": "pass",
+      "output_tail": "routines 70 | public_exec 0 | anon_exec 0 | auth_exec 22; definers 27 | no_search_path 0 | anon 0 | trigger_fns_auth 0 | generators f; anon calls 70 routines -> 42501 permission denied | 70; anon SELECT 29 tables/views -> 42501 | 29"
+    },
+    {
+      "check": "A9 SEC2-05/SEC2-11 (C1-C6)",
+      "result": "fail",
+      "output_tail": "All forged INSERT starts 42501 RLS; system reminder / owner note / sent+approved sample delete rows=0; ticked+cleared reminder DELETE 0; BUT C5 UPDATE: push Balance $18,900 due to 2099 ok rows=1, rewrite owner plain note ok rows=1 -> owner followups_today 3 (was 5) [SEC3-01]"
+    },
+    {
+      "check": "SEC2-06 existence oracle (D1, D2: 41+4 FK and definer paths, org-B id vs random id)",
+      "result": "pass",
+      "output_tail": "same_as_random t on every row; never 23503; no gst/floor detail"
+    },
+    {
+      "check": "SEC2-07 / SEC2-08 / SEC2-10 (E1, F1, G1)",
+      "result": "pass",
+      "output_tail": "switched-off sales item at 1/kg 42501 not_found; tomorrow -> bad_payload received_on (owner too); >110% INR/USD -> bad_payload over_payment, =110% ok; ops payments 0 | balances 0 | money_due 0 | kpis money 0.00 | orders_in_production 1"
+    },
+    {
+      "check": "SEC1-03 audit scrub (onion_crm + replay as non-superuser BYPASSRLS owner, 0007 twice)",
+      "result": "pass",
+      "output_tail": "product_costs_rows 0 | bank_snapshots 0; replay cost_rows_before 3 | bank_before 1 -> cost_rows_after 0 | bank_after 0 | kept_rest 1"
+    },
+    {
+      "check": "Hosted sim (mahua_sc): Supabase default privileges + NOSUPERUSER BYPASSRLS owner, migrations + seed twice, ci-tenant-check",
+      "result": "pass",
+      "output_tail": "Applying 8 migration(s)... Seed completed. (x2); CI tenant check against sc_supa_postgres@mahua_sc: ✅ CI Tenant Check PASSED"
+    },
+    {
+      "check": "Hosted sim: demo-flow definers (fn_sample_create, fn_quote_send, fn_quote_accept, fn_order_set_status/packed, fn_order_advance_waiting, fn_payment_record, fn_order_dispatch, fn_follow_up_done, fn_quote_reject, fn_dispatch_tick, fn_dispatch_delivered) as impersonated users",
+      "result": "pass",
+      "output_tail": "0 errors; QTN-2627-0005 sent 178500.00; ORD-0004 confirmed adv 53550.00; advance_waiting t -> payment -> f; dispatched t; ORD-0002 delivered"
+    },
+    {
+      "check": "Hosted sim: same flow with owner NOBYPASSRLS",
+      "result": "fail",
+      "output_tail": "30 x ERROR: stack depth limit exceeded (fn_current_org -> profiles policy -> fn_current_org). Expected; Supabase documents that postgres has bypassrls [SEC3-02 guard]"
+    },
+    {
+      "check": "Hosted sim: anon after Supabase defaults",
+      "result": "pass",
+      "output_tail": "anon_exec_fns 0 | public_exec_fns 0 | auth_exec_fns 22 | generators_auth 0; anon table privs none; function default ACL {service_role=X}; anon -> permission denied for function fn_current_org / fn_payment_record / view v_home_kpis"
+    },
+    {
+      "check": "Hosted sim teardown",
+      "result": "pass",
+      "output_tail": "DROP DATABASE; mahua_sc_left 0; role_left 0"
+    },
+    {
+      "check": "Client bundle secrets (.next built 17:23 from current tree)",
+      "result": "pass",
+      "output_tail": ".next/static files: 95; DEMO_PASSWORD value 0 files; service role key value 0; DemoPass123! 0; mahuvacrm.com 0; NEXT_PUBLIC_DEMO_MODE 0; client components reading non-public env 0"
+    },
+    {
+      "check": "Secrets in tracked/unignored files; .env.local ignored; service_role only server-side",
+      "result": "pass",
+      "output_tail": "JWT-shaped / sk_ / sb_secret_ 0 files; other password literals 0 lines; .gitignore:26 .env*.local; tracked env files: .env.example; SUPABASE_SERVICE_ROLE_KEY read only in src/lib/supabase/admin.ts (server-only, imported nowhere) and scripts/seed-users.ts"
+    },
+    {
+      "check": "A11 Try-as action abuse (code + QA direct POST)",
+      "result": "pass",
+      "output_tail": "DEMO_MODE!=='true' -> msg.access_denied_title; role superadmin -> msg.err.bad_payload; z.enum of 4 roles -> fixed server-side email map"
+    },
+    {
+      "check": "Seed story after all probes",
+      "result": "pass",
+      "output_tail": "owner v_home_kpis 2 | 1 | 1 | 511875.00 | 18900.00 | 2104200.00 | 1 | 5 | 1"
+    },
+    {
+      "check": "Web login / PostgREST over HTTP / hosted rolbypassrls read",
+      "result": "blocked",
+      "output_tail": "No Supabase stack and no hosted credentials"
+    }
+  ],
+  "findings": [
+    {
+      "id": "SEC3-03",
+      "severity": "major",
+      "owner": "dev1",
+      "co_owners": [],
+      "file_ref": "src/app/(dashboard)/buyers/page.tsx:125-134; src/app/(dashboard)/buyers/queries.ts:38",
+      "problem": "After A6, v_money_due is empty for operations, but the buyers list still shows a money fact and pill for every buyer, so Plant sees every buyer as ₹0 · Paid, including the buyer whose $18,900 is late. buyers/[id] already hides money with isPlant.",
+      "fix": "In buyers/page.tsx set isPlant = profile.role === 'operations' and, for Plant, render no money fact2/badge and skip the overdue sort; in queries.ts skip the v_money_due read for operations."
+    },
+    {
+      "id": "SEC3-01",
+      "severity": "minor",
+      "owner": "dev1",
+      "co_owners": [],
+      "file_ref": "supabase/migrations/0004_inquiries_followups.sql:178-185 (grant :407)",
+      "problem": "follow_ups_update only checks org + module, so any user holding the module can PATCH note/due_on on anyone's reminder, including system reminders. Sales pushed 'Balance $18,900 due' to 2099 (owner Home to-do 5 -> 3) and rewrote the owner's note to 'Owner says: OK to go below floor'. This undoes the A9/SEC2-11 delete protection. It is audited, and no app path updates follow_ups.",
+      "fix": "Add AND (fn_user_role() = 'owner' OR (follow_ups.created_by = auth.uid() AND follow_ups.done_by IS NULL)) to both USING and WITH CHECK of follow_ups_update (keep the buyer same-org check); add a Vitest case: sales UPDATE of the Balance reminder -> 0 rows, own reminder -> 1 row."
+    },
+    {
+      "id": "SEC3-02",
+      "severity": "minor",
+      "owner": "dev2",
+      "co_owners": [],
+      "file_ref": "supabase/migrations/0007_hardening.sql:1-20; scripts/ci-tenant-check.ts",
+      "problem": "Nothing checks that the migration/function owner is SUPERUSER or BYPASSRLS. Under a NOBYPASSRLS owner every request fails with stack depth limit exceeded (fn_current_org -> profiles policy -> fn_current_org), and the 0007 audit scrub silently touches 0 rows. Supabase documents postgres as bypassrls, so this is a credentials-day guard, not a live bug.",
+      "fix": "Top of 0007: DO $$ BEGIN IF NOT (SELECT rolsuper OR rolbypassrls FROM pg_roles WHERE rolname = current_user) THEN RAISE EXCEPTION 'migration owner % must be SUPERUSER or BYPASSRLS', current_user; END IF; END $$; add CI check 11: every SECURITY DEFINER function owner has rolsuper OR rolbypassrls."
+    },
+    {
+      "id": "SEC3-04",
+      "severity": "minor",
+      "owner": "dev1",
+      "co_owners": [],
+      "file_ref": "scripts/seed-users.ts:14-15 (Supabase branch :33-37)",
+      "problem": "With Supabase keys set and DEMO_PASSWORD empty, the four real hosted accounts (owner included) are created with the public DemoPass123!, which is in the repo and docs. The script only warns, and after DEMO_MODE=false the logins stay open to anyone who read the repo.",
+      "fix": "In the Supabase branch, exit 1 with 'Set DEMO_PASSWORD in .env.local before creating Supabase users' when process.env.DEMO_PASSWORD is empty; drop the fallback there (the local shim does not use this path)."
+    },
+    {
+      "id": "SEC3-05",
+      "severity": "info",
+      "owner": "dev3",
+      "co_owners": [],
+      "file_ref": "supabase/migrations/0006_orders_dispatch_payments.sql:779",
+      "problem": "fn_payment_record refuses future dates but accepts any past date (accountant receipt dated 1900-01-01 was accepted).",
+      "fix": "Optional: raise bad_payload received_on when p_received_on < order created_at::date - 365."
+    },
+    {
+      "id": "SEC3-06",
+      "severity": "info",
+      "owner": "dev3",
+      "co_owners": [
+        "dev2"
+      ],
+      "file_ref": "supabase/migrations/0006_orders_dispatch_payments.sql:128; supabase/migrations/0005_samples_quotes.sql:209; contracts A6/3.9",
+      "problem": "A6 covers payments, balances and KPIs only. Through the API Plant still reads orders.total/advance_expected, 5 quotes, 4 items with floor_price_at_time, and follow-up note text such as 'Balance $18,900 due' (also shown on Plant Home To do).",
+      "fix": "Lead decision. If 'Plant reads no money' must be literal, expose orders to operations through a column-limited view and add fn_user_role() IS DISTINCT FROM 'operations' to the quotations/quotation_items SELECT policies."
+    },
+    {
+      "id": "SEC3-07",
+      "severity": "info",
+      "owner": "dev2",
+      "co_owners": [],
+      "file_ref": "tests/helpers/db.ts; tests/security-fixes.test.ts:537",
+      "problem": "npm test against a Supabase-like non-superuser DB gives 11 failed / 100 passed (session_replication_role needs a superuser; gen_salt lives in extensions, so 42883 instead of 42501). These are harness assumptions, not product defects.",
+      "fix": "Keep tests local-only (README already says so); optionally skip those assertions when current_user is not a superuser."
+    }
+  ],
+  "blocked_waiting_for_credentials": [
+    "Hosted: SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user on the migration connection (expect f | t), then npm run ci:tenant-check against the hosted DATABASE_URL",
+    "Web login end to end (password and Try as) with GoTrue cookies, middleware cookie refresh",
+    "PostgREST over HTTP: anon key calls to /rest/v1 tables and /rpc definers (expect 401/42501)",
+    "Signed-in receipt view and print, stepper dates on screen"
+  ],
+  "usability_notes": [
+    "Plant buyers list shows every buyer as Paid (SEC3-03); this is visible in the demo if Plant opens Buyers.",
+    "Plant Home 'To do today' shows money text from follow-up notes ('Balance $18,900 due') although A6 hides money from Plant.",
+    "Seeded plain notes have done_by set, so their authors cannot delete them (A9 requires done_by IS NULL); only notes made in the app are deletable by their author. There is no delete button for notes in the UI today, so this is not visible.",
+    "While DEMO_MODE=true anyone with the URL can sign in as owner; run npm run db:seed to restore the demo story after rehearsals, and follow hosted-supabase.md section 6 after the demo."
+  ],
+  "report_path": "/home/raish/raish/mahua-crm/docs/security/sign-off.md"
+}

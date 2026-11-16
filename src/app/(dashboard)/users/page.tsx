@@ -1,44 +1,34 @@
 import React from 'react';
 import { requireModule } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
-import { Profile } from '@/types/database';
-import { LABELS } from '@/lib/labels';
-import { EmptyState } from '@/components/ui/state-views';
+import { getLang } from '@/lib/i18n-server';
+import { t } from '@/lib/i18n';
+import type { Profile } from '@/types/database';
+import { PageHeader } from '@/components/ui/back-button';
+import { EmptyState, ErrorState } from '@/components/ui/state-views';
 import { UserTable } from './user-table';
 
 export default async function UsersPage() {
-  // Wall 2: Server-side check
-  const currentProfile = await requireModule('users');
+  const me = await requireModule('users'); // Wall 2
+  const lang = getLang();
 
   const supabase = createClient();
   const { data: users, error } = await supabase
     .from('profiles')
     .select('*')
-    .eq('org_id', currentProfile.org_id)
+    .eq('org_id', me.org_id)
     .order('created_at', { ascending: true });
-
-  if (error) {
-    throw new Error(`Failed to load users: ${error.message}`);
-  }
+  if (error) console.error('[users] load failed:', error.code, error.message);
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight text-slate-900">
-          {LABELS.users.title}
-        </h1>
-        <p className="text-xs text-slate-500 mt-1">
-          {LABELS.users.subtitle}
-        </p>
-      </div>
-
-      {!users || users.length === 0 ? (
-        <EmptyState
-          title="No users found"
-          description="There are currently no staff members registered in your organization."
-        />
+    <div className="space-y-4">
+      <PageHeader title={t(lang, 'title.staff')} subtitle={t(lang, 'title.staff_access')} />
+      {error ? (
+        <ErrorState retryHref="/users" lang={lang} />
+      ) : !users || users.length === 0 ? (
+        <EmptyState message="msg.empty.staff" lang={lang} />
       ) : (
-        <UserTable users={users as Profile[]} currentUserId={currentProfile.id} />
+        <UserTable users={users as Profile[]} currentUserId={me.id} />
       )}
     </div>
   );

@@ -1,0 +1,10 @@
+PASS advance reminder written as payment [{"entity_type":"payment","note":"Advance $14,850 due - check bank"}]
+PASS balance reminder written as payment [{"entity_type":"payment","note":"Balance $49,500 due"}]
+PASS owner holds payments + orders (Home keeps the rows, links to /orders/{id})
+PASS Plant Home To do shows no money reminders written by the 0006 definers
+INFO with the current seed 02 Plant Home shows: [] (dev1: seed row cc..01 still entity 'order')
+PASS with seed row as payment: Plant Home To do shows no money words shown=["Re-quote red flakes - crop price down, Manish asked"]
+INFO ops follow_ups SELECT sees 0 payment rows (0 once dev1's follow_ups_select A6 clause lands)
+PASS Plant has no payments module (order page hides payment notes)
+G3-03 PROBE OK
+EXIT=0

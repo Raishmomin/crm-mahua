@@ -1,39 +1,22 @@
 'use client';
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
-import { LogOut } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { createClient } from '@/lib/supabase/client';
-import { Profile } from '@/types/database';
-import { LABELS } from '@/lib/labels';
+import type { Profile } from '@/types/database';
+import { firstName } from '@/lib/utils';
+import { roleWord } from '@/lib/i18n';
+import { useLang } from './lang-provider';
+import { SignOutButton } from './sign-out-button';
 
+/** Header right side on md+: first name, job word, sign-out icon button. */
 export function UserNav({ profile }: { profile: Profile }) {
-  const router = useRouter();
-
-  async function handleSignOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
-  }
-
+  const lang = useLang();
   return (
     <div className="flex items-center gap-3">
-      <div className="text-right hidden sm:block">
-        <p className="text-xs font-semibold text-slate-900">{profile.full_name}</p>
-        <p className="text-[11px] text-slate-500 capitalize">{profile.role}</p>
+      <div className="min-w-0 text-right">
+        <p className="truncate text-base font-semibold text-slate-900">{firstName(profile.full_name)}</p>
+        <p className="truncate text-sm text-slate-500">{roleWord(lang, profile.role)}</p>
       </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleSignOut}
-        title={LABELS.auth.signOut}
-        className="text-slate-500 hover:text-rose-600 gap-1.5"
-      >
-        <LogOut className="h-4 w-4" />
-        <span className="hidden md:inline text-xs">{LABELS.auth.signOut}</span>
-      </Button>
+      <SignOutButton variant="ghost" iconOnly className="text-slate-600 hover:text-rose-700" />
     </div>
   );
 }

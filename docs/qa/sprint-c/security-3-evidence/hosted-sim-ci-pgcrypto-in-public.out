@@ -1,0 +1,80 @@
+CI tenant check against postgresql://sc_supa_postgres:****@127.0.0.1:5432/mahua_sc
+
+❌ CI Tenant Check FAILED: tenant isolation or privilege violations detected:
+
+┌─────────┬──────────────────────────────────────────────────────────────────┬───────────────────────────────────────────────────────────────────────┐
+│ (index) │ object                                                           │ issue                                                                 │
+├─────────┼──────────────────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────┤
+│ 0       │ 'function armor(bytea)'                                          │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 1       │ 'function armor(bytea)'                                          │ 'Executable by role anon; revoke it (0007)'                           │
+│ 2       │ 'function armor(bytea, text[], text[])'                          │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 3       │ 'function armor(bytea, text[], text[])'                          │ 'Executable by role anon; revoke it (0007)'                           │
+│ 4       │ 'function crypt(text, text)'                                     │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 5       │ 'function crypt(text, text)'                                     │ 'Executable by role anon; revoke it (0007)'                           │
+│ 6       │ 'function dearmor(text)'                                         │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 7       │ 'function dearmor(text)'                                         │ 'Executable by role anon; revoke it (0007)'                           │
+│ 8       │ 'function decrypt(bytea, bytea, text)'                           │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 9       │ 'function decrypt(bytea, bytea, text)'                           │ 'Executable by role anon; revoke it (0007)'                           │
+│ 10      │ 'function decrypt_iv(bytea, bytea, bytea, text)'                 │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 11      │ 'function decrypt_iv(bytea, bytea, bytea, text)'                 │ 'Executable by role anon; revoke it (0007)'                           │
+│ 12      │ 'function digest(bytea, text)'                                   │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 13      │ 'function digest(bytea, text)'                                   │ 'Executable by role anon; revoke it (0007)'                           │
+│ 14      │ 'function digest(text, text)'                                    │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 15      │ 'function digest(text, text)'                                    │ 'Executable by role anon; revoke it (0007)'                           │
+│ 16      │ 'function encrypt(bytea, bytea, text)'                           │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 17      │ 'function encrypt(bytea, bytea, text)'                           │ 'Executable by role anon; revoke it (0007)'                           │
+│ 18      │ 'function encrypt_iv(bytea, bytea, bytea, text)'                 │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 19      │ 'function encrypt_iv(bytea, bytea, bytea, text)'                 │ 'Executable by role anon; revoke it (0007)'                           │
+│ 20      │ 'function gen_random_bytes(integer)'                             │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 21      │ 'function gen_random_bytes(integer)'                             │ 'Executable by role anon; revoke it (0007)'                           │
+│ 22      │ 'function gen_random_uuid()'                                     │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 23      │ 'function gen_random_uuid()'                                     │ 'Executable by role anon; revoke it (0007)'                           │
+│ 24      │ 'function gen_salt(text)'                                        │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 25      │ 'function gen_salt(text)'                                        │ 'Executable by role anon; revoke it (0007)'                           │
+│ 26      │ 'function gen_salt(text, integer)'                               │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 27      │ 'function gen_salt(text, integer)'                               │ 'Executable by role anon; revoke it (0007)'                           │
+│ 28      │ 'function hmac(bytea, bytea, text)'                              │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 29      │ 'function hmac(bytea, bytea, text)'                              │ 'Executable by role anon; revoke it (0007)'                           │
+│ 30      │ 'function hmac(text, text, text)'                                │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 31      │ 'function hmac(text, text, text)'                                │ 'Executable by role anon; revoke it (0007)'                           │
+│ 32      │ 'function pgp_armor_headers(text, OUT key text, OUT value text)' │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 33      │ 'function pgp_armor_headers(text, OUT key text, OUT value text)' │ 'Executable by role anon; revoke it (0007)'                           │
+│ 34      │ 'function pgp_key_id(bytea)'                                     │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 35      │ 'function pgp_key_id(bytea)'                                     │ 'Executable by role anon; revoke it (0007)'                           │
+│ 36      │ 'function pgp_pub_decrypt(bytea, bytea)'                         │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 37      │ 'function pgp_pub_decrypt(bytea, bytea)'                         │ 'Executable by role anon; revoke it (0007)'                           │
+│ 38      │ 'function pgp_pub_decrypt(bytea, bytea, text)'                   │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 39      │ 'function pgp_pub_decrypt(bytea, bytea, text)'                   │ 'Executable by role anon; revoke it (0007)'                           │
+│ 40      │ 'function pgp_pub_decrypt(bytea, bytea, text, text)'             │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 41      │ 'function pgp_pub_decrypt(bytea, bytea, text, text)'             │ 'Executable by role anon; revoke it (0007)'                           │
+│ 42      │ 'function pgp_pub_decrypt_bytea(bytea, bytea)'                   │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 43      │ 'function pgp_pub_decrypt_bytea(bytea, bytea)'                   │ 'Executable by role anon; revoke it (0007)'                           │
+│ 44      │ 'function pgp_pub_decrypt_bytea(bytea, bytea, text)'             │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 45      │ 'function pgp_pub_decrypt_bytea(bytea, bytea, text)'             │ 'Executable by role anon; revoke it (0007)'                           │
+│ 46      │ 'function pgp_pub_decrypt_bytea(bytea, bytea, text, text)'       │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 47      │ 'function pgp_pub_decrypt_bytea(bytea, bytea, text, text)'       │ 'Executable by role anon; revoke it (0007)'                           │
+│ 48      │ 'function pgp_pub_encrypt(text, bytea)'                          │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 49      │ 'function pgp_pub_encrypt(text, bytea)'                          │ 'Executable by role anon; revoke it (0007)'                           │
+│ 50      │ 'function pgp_pub_encrypt(text, bytea, text)'                    │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 51      │ 'function pgp_pub_encrypt(text, bytea, text)'                    │ 'Executable by role anon; revoke it (0007)'                           │
+│ 52      │ 'function pgp_pub_encrypt_bytea(bytea, bytea)'                   │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 53      │ 'function pgp_pub_encrypt_bytea(bytea, bytea)'                   │ 'Executable by role anon; revoke it (0007)'                           │
+│ 54      │ 'function pgp_pub_encrypt_bytea(bytea, bytea, text)'             │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 55      │ 'function pgp_pub_encrypt_bytea(bytea, bytea, text)'             │ 'Executable by role anon; revoke it (0007)'                           │
+│ 56      │ 'function pgp_sym_decrypt(bytea, text)'                          │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 57      │ 'function pgp_sym_decrypt(bytea, text)'                          │ 'Executable by role anon; revoke it (0007)'                           │
+│ 58      │ 'function pgp_sym_decrypt(bytea, text, text)'                    │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 59      │ 'function pgp_sym_decrypt(bytea, text, text)'                    │ 'Executable by role anon; revoke it (0007)'                           │
+│ 60      │ 'function pgp_sym_decrypt_bytea(bytea, text)'                    │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 61      │ 'function pgp_sym_decrypt_bytea(bytea, text)'                    │ 'Executable by role anon; revoke it (0007)'                           │
+│ 62      │ 'function pgp_sym_decrypt_bytea(bytea, text, text)'              │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 63      │ 'function pgp_sym_decrypt_bytea(bytea, text, text)'              │ 'Executable by role anon; revoke it (0007)'                           │
+│ 64      │ 'function pgp_sym_encrypt(text, text)'                           │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 65      │ 'function pgp_sym_encrypt(text, text)'                           │ 'Executable by role anon; revoke it (0007)'                           │
+│ 66      │ 'function pgp_sym_encrypt(text, text, text)'                     │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 67      │ 'function pgp_sym_encrypt(text, text, text)'                     │ 'Executable by role anon; revoke it (0007)'                           │
+│ 68      │ 'function pgp_sym_encrypt_bytea(bytea, text)'                    │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 69      │ 'function pgp_sym_encrypt_bytea(bytea, text)'                    │ 'Executable by role anon; revoke it (0007)'                           │
+│ 70      │ 'function pgp_sym_encrypt_bytea(bytea, text, text)'              │ 'Executable by PUBLIC; REVOKE ALL ON FUNCTION ... FROM PUBLIC (0007)' │
+│ 71      │ 'function pgp_sym_encrypt_bytea(bytea, text, text)'              │ 'Executable by role anon; revoke it (0007)'                           │
+└─────────┴──────────────────────────────────────────────────────────────────┴───────────────────────────────────────────────────────────────────────┘

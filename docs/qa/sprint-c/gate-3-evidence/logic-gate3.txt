@@ -1,0 +1,23 @@
+PASS G2-10 ORD-0004 new order, advance waiting -> 8568 + hint
+      got  {"amount":8568,"advance":true}
+PASS G2-10 part of the advance paid (3000) -> rest 5568 + hint
+      got  {"amount":5568,"advance":true}
+PASS G2-10 advance OK -> full due 19992
+      got  {"amount":19992,"advance":false}
+PASS G2-10 no advance (credit) -> full due
+      got  {"amount":511875,"advance":false}
+PASS G2-10 100% advance -> full due (no hint)
+      got  {"amount":50000,"advance":false}
+  en: Namaste Al-Barakah, order ORD-0002 was dispatched on 10 Nov 2026. Invoice INV-2627-0002, Container MSKU 482913-7, Vessel MSC Positano 2646W, ETA 24 Nov 2026, 360 bags, 9 MT. - Mahuva Dehydration
+PASS G2-06 en text has '10 Nov 2026', no '{', no 'today'
+      got  [true,false,false]
+  gu: નમસ્તે Al-Barakah, ઓર્ડર ORD-0002 10 Nov 2026 ના રોજ રવાના થયો. ઇન્વોઇસ INV-2627-0002, કન્ટેનર MSKU 482913-7, જહાજ MSC Positano 2646W, પહોંચશે 24 Nov 2026, 360 બેગ, 9 ટન. - Mahuva Dehydration
+PASS G2-06 gu text has '10 Nov 2026', no '{', no 'today'
+      got  [true,false,false]
+PASS quotes vs orders isExportBuyer agree on 7 shapes
+      got  [true,true,true,true,true,true,true]
+  values: [["export_importer","",true],["export_importer","India",true],["domestic_masala","India",false],["domestic_masala","Germany",false],[null,"India",false],[null,"UAE",true],[null,"",true]]
+PASS SEC1-07 SETTINGS_MAX / MAX_BANK_ACCOUNTS
+      got  [{"name":120,"address":500,"short":32},4]
+
+9 pass, 0 fail

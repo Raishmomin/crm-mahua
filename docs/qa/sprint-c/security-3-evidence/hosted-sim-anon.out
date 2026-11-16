@@ -1,0 +1,35 @@
+--- privileges anon / authenticated hold after Supabase defaults + migrations
+ anon_exec_fns | public_exec_fns | auth_exec_fns | generators_auth 
+---------------+-----------------+---------------+-----------------
+             0 |               0 |            22 |               0
+
+ anon_table_privs | auth_trunc_ref_trig 
+------------------+---------------------
+                  |                   0
+
+    defaclrole    | schema | defaclobjtype |                                            defaclacl                                             
+------------------+--------+---------------+--------------------------------------------------------------------------------------------------
+ sc_supa_postgres | -      | f             | {sc_supa_postgres=X/sc_supa_postgres}
+ sc_supa_postgres | public | S             | {authenticated=rwU/sc_supa_postgres,anon=rwU/sc_supa_postgres,service_role=rwU/sc_supa_postgres}
+ sc_supa_postgres | public | f             | {service_role=X/sc_supa_postgres}
+ sc_supa_postgres | public | r             | {authenticated=arwd/sc_supa_postgres,service_role=arwdDxtm/sc_supa_postgres}
+
+--- anon tries to read and write (expect permission denied / 0 rows, never data)
+SET
+   set_config    | set_config 
+-----------------+------------
+ {"role":"anon"} | 
+
+BEGIN
+ERROR:  permission denied for function fn_current_org
+ERROR:  permission denied for function fn_current_org
+ERROR:  permission denied for view v_home_kpis
+ERROR:  permission denied for function fn_current_org
+ERROR:  permission denied for function fn_user_role
+ERROR:  permission denied for function fn_current_org
+ERROR:  permission denied for function fn_follow_up_done
+ERROR:  permission denied for function fn_payment_record
+ERROR:  permission denied for function fn_next_code
+ERROR:  permission denied for function fn_current_org
+ROLLBACK
+RESET

@@ -4,21 +4,32 @@
 -- 0. Ensure Auth schema & auth.uid() support for local postgres, tests, and Supabase
 CREATE SCHEMA IF NOT EXISTS auth;
 
-CREATE OR REPLACE FUNCTION auth.uid()
-RETURNS uuid
-LANGUAGE sql
-STABLE
-AS $$
-  SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid;
-$$;
+-- auth.uid() / auth.jwt() exist on Supabase (owned by supabase_auth_admin, so
+-- CREATE OR REPLACE would fail there). Create them only when absent (plain Postgres).
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'auth' AND p.proname = 'uid'
+  ) THEN
+    CREATE FUNCTION auth.uid()
+    RETURNS uuid
+    LANGUAGE sql
+    STABLE
+    AS 'SELECT NULLIF(current_setting(''request.jwt.claim.sub'', true), '''')::uuid;';
+  END IF;
 
-CREATE OR REPLACE FUNCTION auth.jwt()
-RETURNS jsonb
-LANGUAGE sql
-STABLE
-AS $$
-  SELECT NULLIF(current_setting('request.jwt.claims', true), '')::jsonb;
-$$;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'auth' AND p.proname = 'jwt'
+  ) THEN
+    CREATE FUNCTION auth.jwt()
+    RETURNS jsonb
+    LANGUAGE sql
+    STABLE
+    AS 'SELECT NULLIF(current_setting(''request.jwt.claims'', true), '''')::jsonb;';
+  END IF;
+END $$;
 
 DO $$
 BEGIN
@@ -26,10 +37,10 @@ BEGIN
     CREATE ROLE authenticated NOLOGIN;
   END IF;
   GRANT USAGE ON SCHEMA public TO authenticated;
-  GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
+  GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
   GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;
   GRANT ALL ON ALL ROUTINES IN SCHEMA public TO authenticated;
-  ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO authenticated;
+  ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO authenticated;
   ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO authenticated;
   ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON ROUTINES TO authenticated;
 END $$;

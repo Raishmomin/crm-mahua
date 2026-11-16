@@ -1,0 +1,20 @@
+
+> mahua-crm@1.0.0 test
+> vitest run
+
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.3 /home/raish/raish/mahua-crm
+
+ ✓ tests/quotes.test.ts  (29 tests) 1502ms
+ ✓ tests/orders-payments.test.ts  (28 tests) 1964ms
+ ✓ tests/inquiries.test.ts  (26 tests) 866ms
+ ✓ tests/security-fixes.test.ts  (23 tests) 985ms
+ ✓ tests/rls-tenant-isolation.test.ts  (5 tests) 635ms
+
+ Test Files  5 passed (5)
+      Tests  111 passed (111)
+   Start at  17:23:04
+   Duration  9.88s (transform 614ms, setup 0ms, collect 1.50s, tests 5.95s, environment 2ms, prepare 720ms)
+
+EXIT=0
